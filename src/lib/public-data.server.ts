@@ -107,12 +107,12 @@ export async function fetchHome() {
 }
 
 export type ListParams = {
-  page?: number;
-  perPage?: number;
-  categorySlug?: string;
-  tagSlug?: string;
-  authorSlug?: string;
-  q?: string;
+  page?: number | undefined;
+  perPage?: number | undefined;
+  categorySlug?: string | undefined;
+  tagSlug?: string | undefined;
+  authorSlug?: string | undefined;
+  q?: string | undefined;
 };
 
 export async function fetchPostList(params: ListParams) {

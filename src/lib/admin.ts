@@ -93,3 +93,134 @@ export function downloadCsv(filename: string, rows: string[][]): void {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+const ALLOWED_MIME = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+  "image/gif",
+  "image/svg+xml",
+]);
+const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_WIDTH = 1600;
+
+export class MediaUploadError extends Error {}
+
+function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new MediaUploadError("Não foi possível ler a imagem."));
+    };
+    img.src = url;
+  });
+}
+
+async function maybeResizeToWebp(
+  file: File,
+  width: number,
+  height: number,
+): Promise<{ blob: Blob; name: string; type: string; width: number; height: number }> {
+  const canConvert = typeof document !== "undefined" && file.type !== "image/svg+xml" && file.type !== "image/gif";
+  if (!canConvert || width <= MAX_WIDTH) {
+    return { blob: file, name: file.name, type: file.type, width, height };
+  }
+  const scale = MAX_WIDTH / width;
+  const targetWidth = MAX_WIDTH;
+  const targetHeight = Math.round(height * scale);
+
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return { blob: file, name: file.name, type: file.type, width, height };
+  ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob((result) => resolve(result), "image/webp", 0.85),
+  );
+  if (!blob) return { blob: file, name: file.name, type: file.type, width, height };
+
+  const newName = file.name.replace(/\.[a-zA-Z0-9]+$/, "") + ".webp";
+  return { blob, name: newName, type: "image/webp", width: targetWidth, height: targetHeight };
+}
+
+export interface UploadMediaOptions {
+  file: File;
+  altText?: string;
+  description?: string;
+  uploadedBy?: string | null;
+}
+
+export async function uploadMediaFile({
+  file,
+  altText,
+  description,
+  uploadedBy,
+}: UploadMediaOptions): Promise<Media> {
+  if (!ALLOWED_MIME.has(file.type)) {
+    throw new MediaUploadError("Formato de imagem não suportado.");
+  }
+  if (file.size > MAX_SIZE_BYTES) {
+    throw new MediaUploadError("A imagem excede o limite de 5 MB.");
+  }
+
+  let width = 0;
+  let height = 0;
+  if (file.type !== "image/svg+xml") {
+    const dims = await readImageDimensions(file);
+    width = dims.width;
+    height = dims.height;
+  }
+
+  const resized = await maybeResizeToWebp(file, width, height);
+
+  const safeName = resized.name.replace(/[^a-zA-Z0-9.\-_]/g, "-").toLowerCase();
+  const storagePath = `${crypto.randomUUID()}-${safeName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("media")
+    .upload(storagePath, resized.blob, { contentType: resized.type, upsert: false });
+  if (uploadError) throw new MediaUploadError(uploadError.message);
+
+  const publicUrl = `/api/public/media/${storagePath}`;
+
+  const { data, error } = await supabase
+    .from("media")
+    .insert({
+      file_name: file.name,
+      storage_path: storagePath,
+      public_url: publicUrl,
+      alt_text: altText ?? null,
+      description: description ?? null,
+      mime_type: resized.type,
+      size_bytes: resized.blob.size,
+      width: resized.width || null,
+      height: resized.height || null,
+      uploaded_by: uploadedBy ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    await supabase.storage.from("media").remove([storagePath]);
+    throw new MediaUploadError(error.message);
+  }
+
+  return data;
+}
+
+export async function deleteMediaFile(media: Media): Promise<void> {
+  const { error: storageError } = await supabase.storage.from("media").remove([media.storage_path]);
+  if (storageError) throw new Error(storageError.message);
+  const { error } = await supabase.from("media").delete().eq("id", media.id);
+  if (error) throw new Error(error.message);
+}

@@ -8,7 +8,7 @@ export const Route = createFileRoute("/admin/posts/$id")({
   loader: async ({ params }) => {
     const { data, error } = await supabase
       .from("posts")
-      .select("*")
+      .select("*, post_tags(tag_id)")
       .eq("id", params.id)
       .maybeSingle();
 
@@ -28,11 +28,13 @@ function EditPostView() {
   const handleSave = async (payload: any) => {
     setLoading(true);
     try {
+      const { _tag_ids, ...postData } = payload;
+
       // Check if slug is taken by another post
       const { data: slugCheck } = await supabase
         .from("posts")
         .select("id")
-        .eq("slug", payload.slug)
+        .eq("slug", postData.slug)
         .neq("id", initialData.id)
         .maybeSingle();
 
@@ -43,15 +45,15 @@ function EditPostView() {
       }
 
       // If status changed to published, ensure published_at is set
-      const isStatusChangedToPublished = payload.status === "published" && initialData.status !== "published";
+      const isStatusChangedToPublished = postData.status === "published" && initialData.status !== "published";
       const updatedPayload = {
-        ...payload,
+        ...postData,
         updated_at: new Date().toISOString(),
         published_at: isStatusChangedToPublished 
           ? (initialData.published_at || new Date().toISOString()) 
-          : payload.status === "published"
+          : postData.status === "published"
           ? initialData.published_at 
-          : payload.published_at,
+          : postData.published_at,
       };
 
       const { error } = await supabase
@@ -60,6 +62,18 @@ function EditPostView() {
         .eq("id", initialData.id);
 
       if (error) throw error;
+
+      // Sync post_tags
+      if (Array.isArray(_tag_ids)) {
+        await supabase.from("post_tags").delete().eq("post_id", initialData.id);
+        if (_tag_ids.length > 0) {
+          const tagInserts = _tag_ids.map((tag_id: string) => ({
+            post_id: initialData.id,
+            tag_id,
+          }));
+          await supabase.from("post_tags").insert(tagInserts);
+        }
+      }
 
       toast.success("Artigo atualizado com sucesso!");
       void navigate({ to: "/admin/posts/" });

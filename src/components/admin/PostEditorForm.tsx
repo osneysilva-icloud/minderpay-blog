@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronDown, Compass, Eye, Image as ImageIcon, Link as LinkIcon, RefreshCw, Save, Sparkles } from "lucide-react";
+import { ChevronDown, Compass, Save, Sparkles, Upload, CheckCircle2, Clock } from "lucide-react";
+import { RichEditor } from "@/components/admin/RichEditor";
 
 interface PostEditorFormProps {
-  postId?: string; // If provided, we are editing
+  postId?: string;
   initialData?: any;
   onSave: (data: any) => Promise<void>;
   loading: boolean;
@@ -27,12 +27,18 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
   const [content, setContent] = useState(initialData?.content || "");
   const [featuredImage, setFeaturedImage] = useState(initialData?.featured_image || "");
   const [featuredImageAlt, setFeaturedImageAlt] = useState(initialData?.featured_image_alt || "");
-  
   const [categoryId, setCategoryId] = useState(initialData?.category_id || "");
   const [authorId, setAuthorId] = useState(initialData?.author_id || "");
   const [status, setStatus] = useState<"draft" | "published" | "scheduled" | "archived">(initialData?.status || "draft");
   const [publishedAt, setPublishedAt] = useState(initialData?.published_at ? new Date(initialData.published_at).toISOString().slice(0, 16) : "");
-  
+
+  // Tags
+  const [allTags, setAllTags] = useState<any[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
+    (initialData?.post_tags ?? []).map((pt: any) => pt.tag_id ?? pt.id ?? pt)
+  );
+  const [newTagName, setNewTagName] = useState("");
+
   // SEO fields
   const [seoTitle, setSeoTitle] = useState(initialData?.seo_title || "");
   const [seoDescription, setSeoDescription] = useState(initialData?.seo_description || "");
@@ -43,142 +49,119 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
   const [ogDescription, setOgDescription] = useState(initialData?.og_description || "");
   const [ogImage, setOgImage] = useState(initialData?.og_image || "");
   const [primaryKeyword, setPrimaryKeyword] = useState(initialData?.primary_keyword || "");
-  const [readingTime, setReadingTime] = useState(initialData?.reading_time || 5);
 
-  // Metadata arrays
+  // UI state
   const [categories, setCategories] = useState<any[]>([]);
   const [authors, setAuthors] = useState<any[]>([]);
   const [showSeo, setShowSeo] = useState(false);
-  const [activeTab, setActiveTab] = useState("editor");
+  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [uploadingFeatured, setUploadingFeatured] = useState(false);
 
-  const contentRef = useRef<HTMLTextAreaElement>(null);
-
-  // Load categories and authors
+  // Load categories, authors, tags
   useEffect(() => {
     supabase.from("categories").select("id,name").order("name").then(({ data }) => {
       setCategories(data || []);
-      if (!categoryId && data && data.length > 0) setCategoryId(data[0].id);
+      if (!categoryId && data?.length) setCategoryId(data[0].id);
     });
     supabase.from("authors").select("id,name").order("name").then(({ data }) => {
       setAuthors(data || []);
-      if (!authorId && data && data.length > 0) setAuthorId(data[0].id);
+      if (!authorId && data?.length) setAuthorId(data[0].id);
+    });
+    supabase.from("tags").select("id,name").order("name").then(({ data }) => {
+      setAllTags(data || []);
     });
   }, []);
 
-  // Autosave check on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Only load autosave if it's newer than initialData
-        const autosavedAt = parsed.autosavedAt || 0;
-        const initialUpdatedAt = initialData?.updated_at ? new Date(initialData.updated_at).getTime() : 0;
-        
-        if (autosavedAt > initialUpdatedAt) {
-          toast("Encontrámos um rascunho automático mais recente para este artigo.", {
-            action: {
-              label: "Recuperar",
-              onClick: () => {
-                setTitle(parsed.title || "");
-                setSlug(parsed.slug || "");
-                setSubtitle(parsed.subtitle || "");
-                setExcerpt(parsed.excerpt || "");
-                setContent(parsed.content || "");
-                setFeaturedImage(parsed.featuredImage || "");
-                setFeaturedImageAlt(parsed.featuredImageAlt || "");
-                setCategoryId(parsed.categoryId || "");
-                setAuthorId(parsed.authorId || "");
-                setStatus(parsed.status || "draft");
-                setReadingTime(parsed.readingTime || 5);
-                setSeoTitle(parsed.seoTitle || "");
-                setSeoDescription(parsed.seoDescription || "");
-                setPrimaryKeyword(parsed.primaryKeyword || "");
-                toast.success("Rascunho recuperado.");
-              }
-            }
-          });
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  }, [initialData]);
-
-  // Periodic autosave to localstorage
+  // Autosave on localStorage
   useEffect(() => {
     if (!title && !content) return;
+    setAutosaveStatus("saving");
     const timer = setTimeout(() => {
-      const payload = {
-        title,
-        slug,
-        subtitle,
-        excerpt,
-        content,
-        featuredImage,
-        featuredImageAlt,
-        categoryId,
-        authorId,
-        status,
-        readingTime,
-        seoTitle,
-        seoDescription,
-        primaryKeyword,
-        autosavedAt: Date.now(),
-      };
+      const payload = { title, slug, subtitle, excerpt, content, featuredImage, featuredImageAlt, categoryId, authorId, status, seoTitle, seoDescription, primaryKeyword, autosavedAt: Date.now() };
       localStorage.setItem(storageKey, JSON.stringify(payload));
-    }, 3000);
-
+      setAutosaveStatus("saved");
+      setTimeout(() => setAutosaveStatus("idle"), 3000);
+    }, 2500);
     return () => clearTimeout(timer);
-  }, [title, slug, subtitle, excerpt, content, featuredImage, featuredImageAlt, categoryId, authorId, status, readingTime, seoTitle, seoDescription, primaryKeyword]);
+  }, [title, slug, subtitle, excerpt, content, featuredImage, featuredImageAlt, categoryId, authorId, status, seoTitle, seoDescription, primaryKeyword]);
 
-  // Generate slug
+  // Restore autosave
+  useEffect(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved);
+      const autosavedAt = parsed.autosavedAt || 0;
+      const initialUpdatedAt = initialData?.updated_at ? new Date(initialData.updated_at).getTime() : 0;
+      if (autosavedAt > initialUpdatedAt) {
+        toast("Encontrámos um rascunho não guardado.", {
+          action: {
+            label: "Recuperar",
+            onClick: () => {
+              setTitle(parsed.title || ""); setSlug(parsed.slug || ""); setSubtitle(parsed.subtitle || "");
+              setExcerpt(parsed.excerpt || ""); setContent(parsed.content || "");
+              setFeaturedImage(parsed.featuredImage || ""); setFeaturedImageAlt(parsed.featuredImageAlt || "");
+              setCategoryId(parsed.categoryId || ""); setAuthorId(parsed.authorId || "");
+              setStatus(parsed.status || "draft"); setSeoTitle(parsed.seoTitle || "");
+              setSeoDescription(parsed.seoDescription || ""); setPrimaryKeyword(parsed.primaryKeyword || "");
+              toast.success("Rascunho recuperado.");
+            },
+          },
+        });
+      }
+    } catch { /* ignore */ }
+  }, [initialData]);
+
+  // Generate slug from title
   const generateSlug = () => {
     if (!title) return;
-    const generated = title
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9\s-]/g, "")
-      .trim()
-      .replace(/\s+/g, "-");
+    const generated = title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
     setSlug(generated);
   };
 
-  // Inject helper tag at textarea cursor
-  const insertFormatting = (tagStart: string, tagEnd = "") => {
-    const textarea = contentRef.current;
-    if (!textarea) return;
+  // Upload featured image
+  const handleFeaturedImageUpload = async (file: File) => {
+    if (!file) return;
+    setUploadingFeatured(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const filename = `featured/${Date.now()}.${ext}`;
+      const { data, error } = await supabase.storage.from("media").upload(filename, file, { upsert: false, contentType: file.type });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from("media").getPublicUrl(data.path);
+      setFeaturedImage(publicUrl);
+      toast.success("Imagem destacada enviada!");
+    } catch (err: any) {
+      toast.error("Erro ao enviar: " + err.message);
+    } finally {
+      setUploadingFeatured(false);
+    }
+  };
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    const selected = text.substring(start, end);
-    const replacement = tagStart + (selected || "texto") + tagEnd;
+  // Toggle tag
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds(prev => prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]);
+  };
 
-    setContent(text.substring(0, start) + replacement + text.substring(end));
-    
-    // Reset focus & cursor selection
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + tagStart.length, start + tagStart.length + (selected || "texto").length);
-    }, 50);
+  // Create new tag inline
+  const createTag = async () => {
+    if (!newTagName.trim()) return;
+    const slugTag = newTagName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
+    const { data, error } = await supabase.from("tags").insert({ name: newTagName.trim(), slug: slugTag }).select("id,name").single();
+    if (error) { toast.error("Erro ao criar tag: " + error.message); return; }
+    setAllTags(prev => [...prev, data]);
+    setSelectedTagIds(prev => [...prev, data.id]);
+    setNewTagName("");
+    toast.success(`Tag "${data.name}" criada!`);
   };
 
   const handleSaveSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title) {
-      toast.error("O título é obrigatório.");
-      return;
-    }
-    if (!slug) {
-      toast.error("O slug é obrigatório.");
-      return;
-    }
+    if (!title) { toast.error("O título é obrigatório."); return; }
+    if (!slug) { toast.error("O slug é obrigatório."); return; }
 
     const payload = {
-      title,
-      slug,
+      title, slug,
       subtitle: subtitle || null,
       excerpt: excerpt || null,
       content,
@@ -187,7 +170,7 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
       category_id: categoryId || null,
       author_id: authorId || null,
       status,
-      reading_time: Number(readingTime) || 5,
+      reading_time: Math.max(1, Math.ceil(content.replace(/<[^>]*>/g, "").split(/\s+/).length / 200)),
       seo_title: seoTitle || null,
       seo_description: seoDescription || null,
       canonical_url: canonicalUrl || null,
@@ -197,59 +180,88 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
       og_description: ogDescription || null,
       og_image: ogImage || null,
       primary_keyword: primaryKeyword || null,
-      published_at: status === "published" 
-        ? (initialData?.published_at || new Date().toISOString()) 
-        : status === "scheduled" && publishedAt 
-        ? new Date(publishedAt).toISOString() 
-        : null,
+      published_at:
+        status === "published"
+          ? (initialData?.published_at || new Date().toISOString())
+          : status === "scheduled" && publishedAt
+          ? new Date(publishedAt).toISOString()
+          : null,
+      _tag_ids: selectedTagIds,
     };
 
     onSave(payload).then(() => {
-      // Clear autosave buffer
       localStorage.removeItem(storageKey);
     });
   };
 
+  // Computed SEO preview
+  const previewTitle = seoTitle || title || "Título do Artigo";
+  const previewDesc = seoDescription || excerpt || "Descrição do artigo aparece aqui para o utilizador que pesquisa no Google...";
+  const previewSlug = slug ? `minderpay.com/blog/${slug}` : "minderpay.com/blog/slug-do-artigo";
+
   return (
     <form onSubmit={handleSaveSubmit} className="space-y-6">
-      {/* Save panel */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+      {/* ── Top action bar ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-border bg-card px-6 py-4 shadow-sm">
         <div>
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-700 tracking-tight text-foreground">
+          <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-foreground">
             {isEdit ? "Editar Artigo" : "Novo Artigo"}
           </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Os rascunhos são salvos automaticamente no seu navegador.
-          </p>
+          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+            {autosaveStatus === "saving" && (
+              <><Clock className="size-3 animate-pulse" /> A guardar rascunho…</>
+            )}
+            {autosaveStatus === "saved" && (
+              <><CheckCircle2 className="size-3 text-green-500" /> Rascunho guardado automaticamente</>
+            )}
+            {autosaveStatus === "idle" && "Os rascunhos são guardados automaticamente."}
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button type="submit" disabled={loading} className="gap-2">
-            <Save className="size-4" /> {loading ? "A guardar…" : "Guardar Artigo"}
+          <select
+            value={status}
+            onChange={(e: any) => setStatus(e.target.value)}
+            className="h-10 rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <option value="draft">Rascunho</option>
+            <option value="published">Publicar agora</option>
+            <option value="scheduled">Agendar</option>
+            <option value="archived">Arquivado</option>
+          </select>
+          <Button type="submit" disabled={loading} className="gap-2 h-10">
+            <Save className="size-4" /> {loading ? "A guardar…" : "Guardar"}
           </Button>
         </div>
       </div>
 
+      {status === "scheduled" && (
+        <div className="rounded-xl border border-border bg-card px-6 py-4">
+          <label className="text-xs font-semibold text-foreground">Data e hora de publicação</label>
+          <Input type="datetime-local" value={publishedAt} onChange={(e) => setPublishedAt(e.target.value)} className="mt-2 max-w-xs" />
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main Content Fields */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* ── Main content ── */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* Title + slug + subtitle + excerpt */}
           <Card className="border border-border shadow-sm">
             <CardContent className="p-6 space-y-4">
-              {/* Title */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-foreground">Título do Artigo</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Título do Artigo *</label>
                 <Input
                   required
                   placeholder="Escreva um título apelativo…"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  className="text-base font-semibold h-12"
                 />
               </div>
 
-              {/* Slug */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-foreground">Slug (URL amigável)</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Slug (URL)</label>
                 <div className="flex gap-2">
-                  <span className="flex items-center text-xs text-muted-foreground bg-muted border border-border px-3 rounded-lg select-none">
+                  <span className="flex items-center text-xs text-muted-foreground bg-muted border border-border px-3 rounded-lg select-none shrink-0">
                     minderpay.com/blog/
                   </span>
                   <Input
@@ -257,34 +269,23 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
                     placeholder="como-ganhar-dinheiro-online"
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
-                    className="flex-1"
+                    className="flex-1 font-mono text-sm"
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={generateSlug}
-                    title="Gerar slug a partir do título"
-                  >
+                  <Button type="button" variant="outline" onClick={generateSlug} title="Gerar slug a partir do título">
                     <Sparkles className="size-4" />
                   </Button>
                 </div>
               </div>
 
-              {/* Subtitle */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-foreground">Subtítulo / Resumo Curto</label>
-                <Input
-                  placeholder="Subtítulo ou descrição secundária…"
-                  value={subtitle}
-                  onChange={(e) => setSubtitle(e.target.value)}
-                />
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Subtítulo</label>
+                <Input placeholder="Subtítulo ou lead da notícia…" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
               </div>
 
-              {/* Excerpt */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-foreground">Excerpt (Excerto para listagens)</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Excerto (resumo curto para listagens)</label>
                 <Textarea
-                  placeholder="Breve resumo para meta tags e cards de artigos…"
+                  placeholder="Breve resumo exibido nos cards do blog e nas meta tags de redes sociais…"
                   value={excerpt}
                   onChange={(e) => setExcerpt(e.target.value)}
                   rows={2}
@@ -293,56 +294,17 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
             </CardContent>
           </Card>
 
-          {/* Editor & Preview Tabs */}
-          <Card className="border border-border shadow-sm overflow-hidden">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="border-b border-border bg-muted/20 px-6 py-2 flex items-center justify-between">
-                <TabsList className="bg-muted">
-                  <TabsTrigger value="editor">Editor HTML</TabsTrigger>
-                  <TabsTrigger value="preview" className="flex items-center gap-1">
-                    <Eye className="size-3.5" /> Pré-visualizar
-                  </TabsTrigger>
-                </TabsList>
+          {/* ── Rich Editor ── */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-foreground">Conteúdo do Artigo *</label>
+            <RichEditor
+              content={content}
+              onChange={setContent}
+              placeholder="Comece a escrever ou escolha um modelo acima…"
+            />
+          </div>
 
-                {activeTab === "editor" && (
-                  <div className="flex flex-wrap gap-1">
-                    <Button type="button" variant="outline" size="sm" onClick={() => insertFormatting("<h2>", "</h2>")} className="h-8 text-xs font-bold">H2</Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => insertFormatting("<h3>", "</h3>")} className="h-8 text-xs font-bold">H3</Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => insertFormatting("<strong>", "</strong>")} className="h-8 text-xs font-bold">B</Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => insertFormatting("<em>", "</em>")} className="h-8 text-xs italic">I</Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => insertFormatting("<blockquote>", "</blockquote>")} className="h-8 text-xs">Citação</Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => insertFormatting('<a href="https://">', "</a>")} className="h-8 text-xs"><LinkIcon className="size-3" /></Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => insertFormatting('<ul>\n  <li>', "</li>\n</ul>")} className="h-8 text-xs">Lista</Button>
-                    <Button type="button" variant="outline" size="sm" onClick={() => insertFormatting('<img src="https://" alt="descrição" />')} className="h-8 text-xs"><ImageIcon className="size-3" /></Button>
-                  </div>
-                )}
-              </div>
-
-              <TabsContent value="editor" className="p-0 border-none m-0">
-                <textarea
-                  ref={contentRef}
-                  required
-                  placeholder="Escreva o conteúdo estruturado em HTML..."
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  rows={20}
-                  className="w-full border-none p-6 font-mono text-sm leading-relaxed text-foreground bg-background focus:outline-none focus:ring-0 min-h-[400px]"
-                />
-              </TabsContent>
-
-              <TabsContent value="preview" className="p-6 prose prose-stone dark:prose-invert max-w-none min-h-[400px] bg-background">
-                {content ? (
-                  <div dangerouslySetInnerHTML={{ __html: content }} />
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-20">
-                    Escreva algum conteúdo no editor para ver a pré-visualização.
-                  </p>
-                )}
-              </TabsContent>
-            </Tabs>
-          </Card>
-
-          {/* SEO Accordion */}
+          {/* ── SEO Card ── */}
           <Card className="border border-border shadow-sm">
             <button
               type="button"
@@ -350,110 +312,80 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
               className="w-full flex items-center justify-between p-6 font-semibold text-foreground text-left"
             >
               <span className="flex items-center gap-2 font-[family-name:var(--font-display)]">
-                <Compass className="size-5 text-primary" /> SEO & Open Graph Avançado
+                <Compass className="size-5 text-primary" /> SEO & Open Graph
               </span>
               <ChevronDown className={`size-5 text-muted-foreground transition-transform ${showSeo ? "rotate-180" : ""}`} />
             </button>
             {showSeo && (
-              <CardContent className="px-6 pb-6 space-y-4 border-t border-border pt-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-foreground">Palavra-passe Principal (Target Keyword)</label>
-                    <Input
-                      placeholder="finanças pessoais"
-                      value={primaryKeyword}
-                      onChange={(e) => setPrimaryKeyword(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-foreground">Tempo de Leitura (minutos)</label>
-                    <Input
-                      type="number"
-                      value={readingTime}
-                      onChange={(e) => setReadingTime(Number(e.target.value))}
-                    />
-                  </div>
+              <CardContent className="px-6 pb-6 space-y-5 border-t border-border pt-4">
+                {/* Google Preview */}
+                <div className="rounded-xl border border-border bg-white dark:bg-gray-900 p-4 space-y-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Pré-visualização Google</p>
+                  <p className="text-xs text-green-700 dark:text-green-400 truncate">{previewSlug}</p>
+                  <p className="text-base text-blue-700 dark:text-blue-400 font-medium truncate leading-snug">{previewTitle.slice(0, 60)}{previewTitle.length > 60 ? "…" : ""}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">{previewDesc.slice(0, 160)}{previewDesc.length > 160 ? "…" : ""}</p>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-foreground">Meta Title (SEO Title)</label>
-                    <Input
-                      placeholder="Deixe em branco para usar o título"
-                      value={seoTitle}
-                      onChange={(e) => setSeoTitle(e.target.value)}
-                    />
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-foreground">Meta Title</label>
+                      <span className={`text-xs ${seoTitle.length > 60 ? "text-red-500" : "text-muted-foreground"}`}>{seoTitle.length}/60</span>
+                    </div>
+                    <Input placeholder="Deixe em branco para usar o título" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
+                    <div className="h-1 rounded-full bg-border overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${seoTitle.length > 60 ? "bg-red-500" : seoTitle.length > 45 ? "bg-yellow-500" : "bg-green-500"}`} style={{ width: `${Math.min(100, (seoTitle.length / 60) * 100)}%` }} />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-foreground">Meta Description (SEO Description)</label>
-                    <Input
-                      placeholder="Deixe em branco para usar o resumo"
-                      value={seoDescription}
-                      onChange={(e) => setSeoDescription(e.target.value)}
-                    />
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-foreground">Meta Description</label>
+                      <span className={`text-xs ${seoDescription.length > 160 ? "text-red-500" : "text-muted-foreground"}`}>{seoDescription.length}/160</span>
+                    </div>
+                    <Input placeholder="Deixe em branco para usar o excerto" value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} />
+                    <div className="h-1 rounded-full bg-border overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${seoDescription.length > 160 ? "bg-red-500" : seoDescription.length > 130 ? "bg-yellow-500" : "bg-green-500"}`} style={{ width: `${Math.min(100, (seoDescription.length / 160) * 100)}%` }} />
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-foreground">Canonical URL</label>
-                  <Input
-                    placeholder="https://minderpay.com/blog/como-gerir-dinheiro"
-                    value={canonicalUrl}
-                    onChange={(e) => setCanonicalUrl(e.target.value)}
-                  />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-foreground">Palavra-chave Principal</label>
+                    <Input placeholder="ex: marketing digital" value={primaryKeyword} onChange={(e) => setPrimaryKeyword(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-foreground">Canonical URL</label>
+                    <Input placeholder="https://minderpay.com/blog/..." value={canonicalUrl} onChange={(e) => setCanonicalUrl(e.target.value)} />
+                  </div>
                 </div>
 
-                <div className="border-t border-border/60 pt-4 space-y-3">
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Metatags de Robôs (Indexação)</h4>
-                  <div className="flex gap-6">
-                    <label className="flex items-center gap-2 text-sm text-foreground select-none cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={robotsIndex}
-                        onChange={(e) => setRobotsIndex(e.target.checked)}
-                        className="rounded border-border text-primary focus:ring-primary size-4"
-                      />
-                      Permitir indexação (index)
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-foreground select-none cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={robotsFollow}
-                        onChange={(e) => setRobotsFollow(e.target.checked)}
-                        className="rounded border-border text-primary focus:ring-primary size-4"
-                      />
-                      Permitir seguir links (follow)
-                    </label>
-                  </div>
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                    <input type="checkbox" checked={robotsIndex} onChange={(e) => setRobotsIndex(e.target.checked)} className="size-4 rounded border-border text-primary" />
+                    Permitir indexação
+                  </label>
+                  <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+                    <input type="checkbox" checked={robotsFollow} onChange={(e) => setRobotsFollow(e.target.checked)} className="size-4 rounded border-border text-primary" />
+                    Seguir links
+                  </label>
                 </div>
 
                 <div className="border-t border-border/60 pt-4 space-y-4">
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Definições Open Graph (Redes Sociais)</h4>
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Open Graph (Redes Sociais)</h4>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-foreground">Título Open Graph</label>
-                      <Input
-                        placeholder="Título para Facebook/Twitter…"
-                        value={ogTitle}
-                        onChange={(e) => setOgTitle(e.target.value)}
-                      />
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-foreground">Título OG</label>
+                      <Input placeholder="Título para Facebook/Instagram…" value={ogTitle} onChange={(e) => setOgTitle(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-foreground">Descrição Open Graph</label>
-                      <Input
-                        placeholder="Descrição para Facebook/Twitter…"
-                        value={ogDescription}
-                        onChange={(e) => setOgDescription(e.target.value)}
-                      />
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-foreground">Descrição OG</label>
+                      <Input placeholder="Descrição para redes sociais…" value={ogDescription} onChange={(e) => setOgDescription(e.target.value)} />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-foreground">URL da Imagem Open Graph</label>
-                    <Input
-                      placeholder="/api/public/media/..."
-                      value={ogImage}
-                      onChange={(e) => setOgImage(e.target.value)}
-                    />
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-foreground">URL da Imagem OG</label>
+                    <Input placeholder="https://..." value={ogImage} onChange={(e) => setOgImage(e.target.value)} />
                   </div>
                 </div>
               </CardContent>
@@ -461,112 +393,118 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
           </Card>
         </div>
 
-        {/* Sidebar Settings Panel */}
-        <div className="space-y-6">
+        {/* ── Sidebar ── */}
+        <div className="space-y-5">
+          {/* Publication */}
           <Card className="border border-border shadow-sm">
-            <CardHeader>
-              <CardTitle className="font-[family-name:var(--font-display)] text-base font-700">
-                Publicação & Metadados
-              </CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="font-[family-name:var(--font-display)] text-base font-bold">Publicação</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Status */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-foreground">Estado do Artigo</label>
-                <select
-                  value={status}
-                  onChange={(e: any) => setStatus(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="draft">Rascunho</option>
-                  <option value="published">Publicado</option>
-                  <option value="scheduled">Agendado</option>
-                  <option value="archived">Arquivado</option>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Categoria</label>
+                <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                  <option value="">Sem categoria</option>
+                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
 
-              {/* Published At Date (if scheduled) */}
-              {status === "scheduled" && (
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-foreground">Data/Hora de Agendamento</label>
-                  <Input
-                    type="datetime-local"
-                    value={publishedAt}
-                    onChange={(e) => setPublishedAt(e.target.value)}
-                  />
-                </div>
-              )}
-
-              {/* Category Selection */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-foreground">Categoria Principal</label>
-                <select
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="">Selecione uma categoria</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Author Selection */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Autor</label>
-                <select
-                  value={authorId}
-                  onChange={(e) => setAuthorId(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="">Selecione um autor</option>
-                  {authors.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
+                <select value={authorId} onChange={(e) => setAuthorId(e.target.value)} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                  <option value="">Sem autor</option>
+                  {authors.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tags */}
+          <Card className="border border-border shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="font-[family-name:var(--font-display)] text-base font-bold">Tags</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {allTags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTag(tag.id)}
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-all border ${
+                      selectedTagIds.includes(tag.id)
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+                    }`}
+                  >
+                    {selectedTagIds.includes(tag.id) && <span className="mr-1">✓</span>}
+                    {tag.name}
+                  </button>
+                ))}
+                {allTags.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma tag criada ainda.</p>}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); createTag(); } }}
+                  placeholder="Nova tag…"
+                  className="h-8 flex-1 rounded-lg border border-border bg-background px-3 text-xs focus:border-primary focus:outline-none"
+                />
+                <button type="button" onClick={createTag} disabled={!newTagName.trim()} className="h-8 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                  + Criar
+                </button>
               </div>
             </CardContent>
           </Card>
 
           {/* Featured Image */}
           <Card className="border border-border shadow-sm">
-            <CardHeader>
-              <CardTitle className="font-[family-name:var(--font-display)] text-base font-700">
-                Imagem Destacada
-              </CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="font-[family-name:var(--font-display)] text-base font-bold">Imagem Destacada</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-foreground">URL da Imagem</label>
-                <Input
-                  placeholder="https:// ou URL pública de média…"
-                  value={featuredImage}
-                  onChange={(e) => setFeaturedImage(e.target.value)}
-                />
+            <CardContent className="space-y-3">
+              {/* Drag & drop upload */}
+              <label
+                className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted/30 p-6 transition-colors hover:border-primary hover:bg-primary/5"
+                onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file?.type.startsWith("image/")) handleFeaturedImageUpload(file); }}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                {uploadingFeatured ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="size-5 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+                    A enviar…
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="size-6 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground text-center">Clique ou arraste uma imagem<br />JPG, PNG, WebP — máx. 10 MB</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFeaturedImageUpload(file); }} />
+              </label>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Ou cole a URL</label>
+                <Input placeholder="https://..." value={featuredImage} onChange={(e) => setFeaturedImage(e.target.value)} />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-foreground">Texto Alternativo (Alt Text - Acessibilidade)</label>
-                <Input
-                  placeholder="Descreva a imagem para leitores de ecrã…"
-                  value={featuredImageAlt}
-                  onChange={(e) => setFeaturedImageAlt(e.target.value)}
-                />
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Texto alternativo (Alt)</label>
+                <Input placeholder="Descrição acessível da imagem…" value={featuredImageAlt} onChange={(e) => setFeaturedImageAlt(e.target.value)} />
               </div>
 
-              {/* Preview image box */}
               {featuredImage && (
-                <div className="border border-border rounded-lg overflow-hidden aspect-video bg-muted relative">
-                  <img
-                    src={featuredImage}
-                    alt="Pré-visualização da imagem destacada"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="relative rounded-xl overflow-hidden border border-border aspect-video bg-muted">
+                  <img src={featuredImage} alt="Pré-visualização" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setFeaturedImage("")}
+                    className="absolute top-2 right-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80 transition-colors"
+                  >
+                    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
                 </div>
               )}
             </CardContent>

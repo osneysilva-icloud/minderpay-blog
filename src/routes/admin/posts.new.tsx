@@ -26,13 +26,28 @@ function NewPostView() {
         .limit(1)
         .maybeSingle();
 
+      const { _tag_ids, ...postData } = payload;
+
       const finalPayload = {
-        ...payload,
-        author_id: payload.author_id || author?.id || null,
+        ...postData,
+        author_id: postData.author_id || author?.id || null,
       };
 
-      const { error } = await supabase.from("posts").insert(finalPayload);
+      const { data: newPost, error } = await supabase
+        .from("posts")
+        .insert(finalPayload)
+        .select("id")
+        .single();
+
       if (error) throw error;
+
+      if (_tag_ids && Array.isArray(_tag_ids) && _tag_ids.length > 0 && newPost?.id) {
+        const tagInserts = _tag_ids.map((tag_id: string) => ({
+          post_id: newPost.id,
+          tag_id,
+        }));
+        await supabase.from("post_tags").insert(tagInserts);
+      }
 
       toast.success("Artigo criado com sucesso!");
       void navigate({ to: "/admin/posts/" });

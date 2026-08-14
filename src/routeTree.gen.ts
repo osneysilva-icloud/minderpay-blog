@@ -10,33 +10,324 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ContactoRouteImport } from './routes/contacto'
+import { Route as PesquisaRouteImport } from './routes/pesquisa'
+import { Route as PoliticaDeCookiesRouteImport } from './routes/politica-de-cookies'
+import { Route as PoliticaDePrivacidadeRouteImport } from './routes/politica-de-privacidade'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SobreRouteImport } from './routes/sobre'
+import { Route as TermosDeUsoRouteImport } from './routes/termos-de-uso'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminCategoriesRouteImport } from './routes/admin/categories'
+import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
+import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminMediaRouteImport } from './routes/admin/media'
+import { Route as AdminPostsRouteImport } from './routes/admin/posts'
+import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
+import { Route as AdminTagsRouteImport } from './routes/admin/tags'
+import { Route as AutorSlugRouteImport } from './routes/autor.$slug'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as CategoriaSlugRouteImport } from './routes/categoria.$slug'
+import { Route as AdminPostsIdRouteImport } from './routes/admin/posts.$id'
+import { Route as AdminPostsNewRouteImport } from './routes/admin/posts.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactoRoute = ContactoRouteImport.update({
+  id: '/contacto',
+  path: '/contacto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PesquisaRoute = PesquisaRouteImport.update({
+  id: '/pesquisa',
+  path: '/pesquisa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaDeCookiesRoute = PoliticaDeCookiesRouteImport.update({
+  id: '/politica-de-cookies',
+  path: '/politica-de-cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaDePrivacidadeRoute = PoliticaDePrivacidadeRouteImport.update({
+  id: '/politica-de-privacidade',
+  path: '/politica-de-privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SobreRoute = SobreRouteImport.update({
+  id: '/sobre',
+  path: '/sobre',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosDeUsoRoute = TermosDeUsoRouteImport.update({
+  id: '/termos-de-uso',
+  path: '/termos-de-uso',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMediaRoute = AdminMediaRouteImport.update({
+  id: '/media',
+  path: '/media',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPostsRoute = AdminPostsRouteImport.update({
+  id: '/posts',
+  path: '/posts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTagsRoute = AdminTagsRouteImport.update({
+  id: '/tags',
+  path: '/tags',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AutorSlugRoute = AutorSlugRouteImport.update({
+  id: '/autor/$slug',
+  path: '/autor/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoriaSlugRoute = CategoriaSlugRouteImport.update({
+  id: '/categoria/$slug',
+  path: '/categoria/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPostsIdRoute = AdminPostsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminPostsRoute,
+} as any)
+const AdminPostsNewRoute = AdminPostsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AdminPostsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/contacto': typeof ContactoRoute
+  '/pesquisa': typeof PesquisaRoute
+  '/politica-de-cookies': typeof PoliticaDeCookiesRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sobre': typeof SobreRoute
+  '/termos-de-uso': typeof TermosDeUsoRoute
+  '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/media': typeof AdminMediaRoute
+  '/admin/posts': typeof AdminPostsRouteWithChildren
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/tags': typeof AdminTagsRoute
+  '/autor/$slug': typeof AutorSlugRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/categoria/$slug': typeof CategoriaSlugRoute
+  '/admin/': typeof AdminIndexRoute
+  '/blog/': typeof BlogIndexRoute
+  '/admin/posts/$id': typeof AdminPostsIdRoute
+  '/admin/posts/new': typeof AdminPostsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/contacto': typeof ContactoRoute
+  '/pesquisa': typeof PesquisaRoute
+  '/politica-de-cookies': typeof PoliticaDeCookiesRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sobre': typeof SobreRoute
+  '/termos-de-uso': typeof TermosDeUsoRoute
+  '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/media': typeof AdminMediaRoute
+  '/admin/posts': typeof AdminPostsRouteWithChildren
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/tags': typeof AdminTagsRoute
+  '/autor/$slug': typeof AutorSlugRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/categoria/$slug': typeof CategoriaSlugRoute
+  '/admin': typeof AdminIndexRoute
+  '/blog': typeof BlogIndexRoute
+  '/admin/posts/$id': typeof AdminPostsIdRoute
+  '/admin/posts/new': typeof AdminPostsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/contacto': typeof ContactoRoute
+  '/pesquisa': typeof PesquisaRoute
+  '/politica-de-cookies': typeof PoliticaDeCookiesRoute
+  '/politica-de-privacidade': typeof PoliticaDePrivacidadeRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/sobre': typeof SobreRoute
+  '/termos-de-uso': typeof TermosDeUsoRoute
+  '/admin/categories': typeof AdminCategoriesRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/media': typeof AdminMediaRoute
+  '/admin/posts': typeof AdminPostsRouteWithChildren
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/tags': typeof AdminTagsRoute
+  '/autor/$slug': typeof AutorSlugRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/categoria/$slug': typeof CategoriaSlugRoute
+  '/admin/': typeof AdminIndexRoute
+  '/blog/': typeof BlogIndexRoute
+  '/admin/posts/$id': typeof AdminPostsIdRoute
+  '/admin/posts/new': typeof AdminPostsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/contacto'
+    | '/pesquisa'
+    | '/politica-de-cookies'
+    | '/politica-de-privacidade'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/sobre'
+    | '/termos-de-uso'
+    | '/admin/categories'
+    | '/admin/dashboard'
+    | '/admin/login'
+    | '/admin/media'
+    | '/admin/posts'
+    | '/admin/settings'
+    | '/admin/tags'
+    | '/autor/$slug'
+    | '/blog/$slug'
+    | '/categoria/$slug'
+    | '/admin/'
+    | '/blog/'
+    | '/admin/posts/$id'
+    | '/admin/posts/new'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/contacto'
+    | '/pesquisa'
+    | '/politica-de-cookies'
+    | '/politica-de-privacidade'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/sobre'
+    | '/termos-de-uso'
+    | '/admin/categories'
+    | '/admin/dashboard'
+    | '/admin/login'
+    | '/admin/media'
+    | '/admin/posts'
+    | '/admin/settings'
+    | '/admin/tags'
+    | '/autor/$slug'
+    | '/blog/$slug'
+    | '/categoria/$slug'
+    | '/admin'
+    | '/blog'
+    | '/admin/posts/$id'
+    | '/admin/posts/new'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/contacto'
+    | '/pesquisa'
+    | '/politica-de-cookies'
+    | '/politica-de-privacidade'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/sobre'
+    | '/termos-de-uso'
+    | '/admin/categories'
+    | '/admin/dashboard'
+    | '/admin/login'
+    | '/admin/media'
+    | '/admin/posts'
+    | '/admin/settings'
+    | '/admin/tags'
+    | '/autor/$slug'
+    | '/blog/$slug'
+    | '/categoria/$slug'
+    | '/admin/'
+    | '/blog/'
+    | '/admin/posts/$id'
+    | '/admin/posts/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  ContactoRoute: typeof ContactoRoute
+  PesquisaRoute: typeof PesquisaRoute
+  PoliticaDeCookiesRoute: typeof PoliticaDeCookiesRoute
+  PoliticaDePrivacidadeRoute: typeof PoliticaDePrivacidadeRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SobreRoute: typeof SobreRoute
+  TermosDeUsoRoute: typeof TermosDeUsoRoute
+  AutorSlugRoute: typeof AutorSlugRoute
+  BlogSlugRoute: typeof BlogSlugRoute
+  CategoriaSlugRoute: typeof CategoriaSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +339,223 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contacto': {
+      id: '/contacto'
+      path: '/contacto'
+      fullPath: '/contacto'
+      preLoaderRoute: typeof ContactoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pesquisa': {
+      id: '/pesquisa'
+      path: '/pesquisa'
+      fullPath: '/pesquisa'
+      preLoaderRoute: typeof PesquisaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-de-cookies': {
+      id: '/politica-de-cookies'
+      path: '/politica-de-cookies'
+      fullPath: '/politica-de-cookies'
+      preLoaderRoute: typeof PoliticaDeCookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-de-privacidade': {
+      id: '/politica-de-privacidade'
+      path: '/politica-de-privacidade'
+      fullPath: '/politica-de-privacidade'
+      preLoaderRoute: typeof PoliticaDePrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sobre': {
+      id: '/sobre'
+      path: '/sobre'
+      fullPath: '/sobre'
+      preLoaderRoute: typeof SobreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos-de-uso': {
+      id: '/termos-de-uso'
+      path: '/termos-de-uso'
+      fullPath: '/termos-de-uso'
+      preLoaderRoute: typeof TermosDeUsoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/categories': {
+      id: '/admin/categories'
+      path: '/categories'
+      fullPath: '/admin/categories'
+      preLoaderRoute: typeof AdminCategoriesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/media': {
+      id: '/admin/media'
+      path: '/media'
+      fullPath: '/admin/media'
+      preLoaderRoute: typeof AdminMediaRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/posts': {
+      id: '/admin/posts'
+      path: '/posts'
+      fullPath: '/admin/posts'
+      preLoaderRoute: typeof AdminPostsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/tags': {
+      id: '/admin/tags'
+      path: '/tags'
+      fullPath: '/admin/tags'
+      preLoaderRoute: typeof AdminTagsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/autor/$slug': {
+      id: '/autor/$slug'
+      path: '/autor/$slug'
+      fullPath: '/autor/$slug'
+      preLoaderRoute: typeof AutorSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/categoria/$slug': {
+      id: '/categoria/$slug'
+      path: '/categoria/$slug'
+      fullPath: '/categoria/$slug'
+      preLoaderRoute: typeof CategoriaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/posts/$id': {
+      id: '/admin/posts/$id'
+      path: '/$id'
+      fullPath: '/admin/posts/$id'
+      preLoaderRoute: typeof AdminPostsIdRouteImport
+      parentRoute: typeof AdminPostsRoute
+    }
+    '/admin/posts/new': {
+      id: '/admin/posts/new'
+      path: '/new'
+      fullPath: '/admin/posts/new'
+      preLoaderRoute: typeof AdminPostsNewRouteImport
+      parentRoute: typeof AdminPostsRoute
+    }
   }
 }
 
+interface AdminPostsRouteChildren {
+  AdminPostsIdRoute: typeof AdminPostsIdRoute
+  AdminPostsNewRoute: typeof AdminPostsNewRoute
+}
+
+const AdminPostsRouteChildren: AdminPostsRouteChildren = {
+  AdminPostsIdRoute: AdminPostsIdRoute,
+  AdminPostsNewRoute: AdminPostsNewRoute,
+}
+
+const AdminPostsRouteWithChildren = AdminPostsRoute._addFileChildren(
+  AdminPostsRouteChildren,
+)
+
+interface AdminRouteChildren {
+  AdminCategoriesRoute: typeof AdminCategoriesRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminLoginRoute: typeof AdminLoginRoute
+  AdminMediaRoute: typeof AdminMediaRoute
+  AdminPostsRoute: typeof AdminPostsRouteWithChildren
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminTagsRoute: typeof AdminTagsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminCategoriesRoute: AdminCategoriesRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
+  AdminLoginRoute: AdminLoginRoute,
+  AdminMediaRoute: AdminMediaRoute,
+  AdminPostsRoute: AdminPostsRouteWithChildren,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminTagsRoute: AdminTagsRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  ContactoRoute: ContactoRoute,
+  PesquisaRoute: PesquisaRoute,
+  PoliticaDeCookiesRoute: PoliticaDeCookiesRoute,
+  PoliticaDePrivacidadeRoute: PoliticaDePrivacidadeRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SobreRoute: SobreRoute,
+  TermosDeUsoRoute: TermosDeUsoRoute,
+  AutorSlugRoute: AutorSlugRoute,
+  BlogSlugRoute: BlogSlugRoute,
+  CategoriaSlugRoute: CategoriaSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

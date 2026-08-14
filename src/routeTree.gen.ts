@@ -26,6 +26,7 @@ import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminMediaRouteImport } from './routes/admin/media'
 import { Route as AdminPostsRouteImport } from './routes/admin/posts'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
+import { Route as AdminSetupRouteImport } from './routes/admin/setup'
 import { Route as AdminTagsRouteImport } from './routes/admin/tags'
 import { Route as AutorSlugRouteImport } from './routes/autor.$slug'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
@@ -119,6 +120,11 @@ const AdminSettingsRoute = AdminSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSetupRoute = AdminSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminTagsRoute = AdminTagsRouteImport.update({
   id: '/tags',
   path: '/tags',
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/admin/media': typeof AdminMediaRoute
   '/admin/posts': typeof AdminPostsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/setup': typeof AdminSetupRoute
   '/admin/tags': typeof AdminTagsRoute
   '/autor/$slug': typeof AutorSlugRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   '/admin/media': typeof AdminMediaRoute
   '/admin/posts': typeof AdminPostsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/setup': typeof AdminSetupRoute
   '/admin/tags': typeof AdminTagsRoute
   '/autor/$slug': typeof AutorSlugRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -224,6 +232,7 @@ export interface FileRoutesById {
   '/admin/media': typeof AdminMediaRoute
   '/admin/posts': typeof AdminPostsRouteWithChildren
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/setup': typeof AdminSetupRoute
   '/admin/tags': typeof AdminTagsRoute
   '/autor/$slug': typeof AutorSlugRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -252,6 +261,7 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/posts'
     | '/admin/settings'
+    | '/admin/setup'
     | '/admin/tags'
     | '/autor/$slug'
     | '/blog/$slug'
@@ -277,6 +287,7 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/posts'
     | '/admin/settings'
+    | '/admin/setup'
     | '/admin/tags'
     | '/autor/$slug'
     | '/blog/$slug'
@@ -303,6 +314,7 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/posts'
     | '/admin/settings'
+    | '/admin/setup'
     | '/admin/tags'
     | '/autor/$slug'
     | '/blog/$slug'
@@ -451,6 +463,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/setup': {
+      id: '/admin/setup'
+      path: '/setup'
+      fullPath: '/admin/setup'
+      preLoaderRoute: typeof AdminSetupRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/tags': {
       id: '/admin/tags'
       path: '/tags'
@@ -524,6 +543,7 @@ interface AdminRouteChildren {
   AdminMediaRoute: typeof AdminMediaRoute
   AdminPostsRoute: typeof AdminPostsRouteWithChildren
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminSetupRoute: typeof AdminSetupRoute
   AdminTagsRoute: typeof AdminTagsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -535,6 +555,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMediaRoute: AdminMediaRoute,
   AdminPostsRoute: AdminPostsRouteWithChildren,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminSetupRoute: AdminSetupRoute,
   AdminTagsRoute: AdminTagsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }

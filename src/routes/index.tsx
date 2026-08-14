@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { getHomeData } from "@/lib/public.functions";
 import { SiteLayout } from "@/components/site/layout";
 import { useSite } from "@/components/site/site-context";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { ArticleCard, FeaturedArticle } from "@/components/site/ArticleCard";
 import { Newsletter } from "@/components/site/Newsletter";
 import { AdSlot } from "@/components/site/AdSlot";
@@ -23,6 +25,23 @@ export const Route = createFileRoute("/")({
 function Index() {
   const { recent, popular, featured } = Route.useLoaderData();
   const { categories } = useSite();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) {
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.session.user.id)
+          .eq("role", "admin")
+          .maybeSingle()
+          .then(({ data: roleData }) => {
+            if (roleData) setIsAdmin(true);
+          });
+      }
+    });
+  }, []);
 
   // If there are featured posts, pick the first one as primary hero
   const primaryFeatured = featured.length > 0 ? featured[0] : null;
@@ -57,15 +76,23 @@ function Index() {
           ) : (
             <div className="rounded-2xl border border-dashed border-border py-20 text-center">
               <h2 className="text-xl font-medium text-foreground">Nenhum artigo publicado</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Inicie sessão no painel para criar e publicar os seus primeiros artigos.
-              </p>
-              <Link
-                to="/admin/login"
-                className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground hover:opacity-90"
-              >
-                Ir para o Painel
-              </Link>
+              {isAdmin ? (
+                <>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Inicie sessão no painel para criar e publicar os seus primeiros artigos.
+                  </p>
+                  <Link
+                    to="/admin/login"
+                    className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                  >
+                    Ir para o Painel
+                  </Link>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  De momento, não existem artigos publicados no portal. Por favor, volte a visitar-nos mais tarde.
+                </p>
+              )}
             </div>
           )}
         </section>

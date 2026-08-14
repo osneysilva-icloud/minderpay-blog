@@ -62,7 +62,7 @@ function EditPostView() {
       if (error) throw error;
 
       toast.success("Artigo atualizado com sucesso!");
-      void navigate({ to: "/admin/posts" });
+      void navigate({ to: "/admin/posts/" });
     } catch (err: any) {
       toast.error(err.message || "Erro ao atualizar o artigo.");
     } finally {

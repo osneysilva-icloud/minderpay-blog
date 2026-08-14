@@ -35,7 +35,7 @@ function NewPostView() {
       if (error) throw error;
 
       toast.success("Artigo criado com sucesso!");
-      void navigate({ to: "/admin/posts" });
+      void navigate({ to: "/admin/posts/" });
     } catch (err: any) {
       toast.error(err.message || "Erro ao criar o artigo.");
     } finally {

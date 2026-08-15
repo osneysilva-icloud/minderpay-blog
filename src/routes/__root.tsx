@@ -100,10 +100,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     return {
       meta: [
         { charSet: "utf-8" },
-        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { name: "viewport", content: "width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" },
         { title: `${siteName} — ${SITE_TAGLINE}` },
         { name: "description", content: description },
-        { name: "theme-color", content: "#0f1b24" },
+        { name: "theme-color", content: "#090d16" },
+        { name: "mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+        { name: "apple-mobile-web-app-title", content: siteName },
         { property: "og:site_name", content: siteName },
         { property: "og:locale", content: "pt_PT" },
         { property: "og:type", content: "website" },
@@ -111,6 +115,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         ...(gsc ? [{ name: "google-site-verification", content: gsc }] : []),
       ],
       links: [
+        { rel: "manifest", href: "/manifest.json" },
         { rel: "stylesheet", href: appCss },
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
         { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -120,7 +125,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         },
         { rel: "icon", type: "image/svg+xml", href: settings?.favicon_url || "/favicon.svg" },
         { rel: "alternate icon", type: "image/x-icon", href: "/favicon.ico" },
-        { rel: "apple-touch-icon", href: "/favicon.svg" },
+        { rel: "apple-touch-icon", href: settings?.favicon_url || "/favicon.svg" },
       ],
       scripts: [
         ...(ga

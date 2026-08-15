@@ -1,0 +1,39 @@
+{
+  "name": "MinderPay",
+  "short_name": "MinderPay",
+  "description": "Conteúdo editorial sobre dinheiro, negócios, infoprodutos e tecnologia por Minder Ads.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#0066ff",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "48x48 72x72 96x96 128x128 192x192 256x256 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["news", "business", "finance"],
+  "shortcuts": [
+    {
+      "name": "Ver Artigos",
+      "short_name": "Artigos",
+      "description": "Explorar últimos artigos do blog",
+      "url": "/blog"
+    },
+    {
+      "name": "Contacto",
+      "short_name": "Contacto",
+      "description": "Falar com Minder Ads via WhatsApp",
+      "url": "/contacto"
+    }
+  ]
+}

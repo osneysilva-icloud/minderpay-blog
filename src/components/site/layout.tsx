@@ -14,6 +14,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useSite } from "./site-context";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
 import { usePageAnalytics } from "@/hooks/usePageAnalytics";
+import { PwaInstaller } from "./PwaInstaller";
 
 // ─── Hardcoded social links (always show, not from DB) ───────────────────────
 const WHATSAPP_URL = "https://wa.me/258864339593";
@@ -483,6 +484,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <Footer />
+      <PwaInstaller />
     </div>
   );
 }

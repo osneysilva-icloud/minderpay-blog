@@ -262,12 +262,27 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
             className="h-10 rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             <option value="draft">Rascunho</option>
-            <option value="published">Publicar agora</option>
+            <option value="published">{isEdit ? "Publicado (Ativo)" : "Publicar Agora"}</option>
             <option value="scheduled">Agendar</option>
             <option value="archived">Arquivado</option>
           </select>
-          <Button type="submit" disabled={loading} className="gap-2 h-10">
-            <Save className="size-4" /> {loading ? "A guardar…" : "Guardar"}
+          <Button
+            type="submit"
+            disabled={loading}
+            className={`gap-2 h-10 px-5 font-semibold ${
+              status === "published"
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                : ""
+            }`}
+          >
+            <Save className="size-4" />
+            {loading
+              ? "A guardar…"
+              : status === "published"
+              ? isEdit
+                ? "Publicar Alterações"
+                : "Publicar Artigo"
+              : "Guardar"}
           </Button>
         </div>
       </div>

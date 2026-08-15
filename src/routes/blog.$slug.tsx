@@ -8,6 +8,8 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/blog/$slug")({
+  staleTime: 0,
+  gcTime: 0,
   loader: async ({ params }) => {
     try {
       const res = await getPost({ data: { slug: params.slug } });

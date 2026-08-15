@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, notFound } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ export const Route = createFileRoute("/admin/posts/$id")({
 
 function EditPostView() {
   const navigate = useNavigate();
+  const router = useRouter();
   const initialData = Route.useLoaderData();
   const [loading, setLoading] = useState(false);
 
@@ -44,16 +45,18 @@ function EditPostView() {
         return;
       }
 
-      // If status changed to published, ensure published_at is set
-      const isStatusChangedToPublished = postData.status === "published" && initialData.status !== "published";
+      // Ensure published_at is a valid timestamp if published
+      const isPublished = postData.status === "published";
+      const resolvedPublishedAt = isPublished
+        ? initialData.published_at || postData.published_at || new Date().toISOString()
+        : postData.status === "scheduled" && postData.published_at
+        ? postData.published_at
+        : null;
+
       const updatedPayload = {
         ...postData,
         updated_at: new Date().toISOString(),
-        published_at: isStatusChangedToPublished 
-          ? (initialData.published_at || new Date().toISOString()) 
-          : postData.status === "published"
-          ? initialData.published_at 
-          : postData.published_at,
+        published_at: resolvedPublishedAt,
       };
 
       const { error } = await supabase
@@ -75,7 +78,15 @@ function EditPostView() {
         }
       }
 
-      toast.success("Artigo atualizado com sucesso!");
+      // Invalidate all route caches so published changes are immediately visible
+      await router.invalidate();
+
+      toast.success(
+        isPublished
+          ? "Artigo e alterações publicados com sucesso!"
+          : "Artigo atualizado com sucesso!"
+      );
+
       void navigate({ to: "/admin/posts/" });
     } catch (err: any) {
       toast.error(err.message || "Erro ao atualizar o artigo.");

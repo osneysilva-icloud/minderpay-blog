@@ -112,7 +112,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { property: "og:locale", content: "pt_PT" },
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary_large_image" },
-        ...(gsc ? [{ name: "google-site-verification", content: gsc }] : []),
+        ...(gsc
+          ? [
+              {
+                name: "google-site-verification",
+                content: gsc.replace(/^google-site-verification=/, "").replace(/['"]/g, "").trim(),
+              },
+            ]
+          : []),
       ],
       links: [
         { rel: "manifest", href: "/manifest.json" },

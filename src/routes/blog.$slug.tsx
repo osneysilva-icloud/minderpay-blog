@@ -13,21 +13,23 @@ export const Route = createFileRoute("/blog/$slug")({
     try {
       const res = await getPost({ slug: params.slug });
       
-      if (res.redirect) {
+      if (res?.redirect) {
         throw redirect({
           href: res.redirect.new_path,
           statusCode: (res.redirect.status_code as any) || 301,
         });
       }
 
-      if (!res.post) {
+      if (!res?.post) {
         throw notFound();
       }
 
       return res;
     } catch (e: any) {
-      if (e.status === 301 || e.status === 302 || e.isRouteRedirect) throw e;
-      console.error(e);
+      if (e?.status === 301 || e?.status === 302 || e?.isRouteRedirect || e?.isNotFound) {
+        throw e;
+      }
+      console.error("[blog.$slug loader error]:", e);
       throw notFound();
     }
   },

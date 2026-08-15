@@ -92,7 +92,7 @@ export const sendContactMessage = createServerFn({ method: "POST" })
   });
 
 export const subscribeToNewsletter = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({ email: z.string().email().max(160), source: z.string().max(60).optional() })
       .parse(input),
@@ -100,4 +100,10 @@ export const subscribeToNewsletter = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { insertSubscriber } = await import("./public-data.server");
     return insertSubscriber(data.email, data.source ?? "site");
+  });
+
+export const getDashboardAnalytics = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { fetchDashboardAnalyticsData } = await import("./public-data.server");
+    return fetchDashboardAnalyticsData();
   });

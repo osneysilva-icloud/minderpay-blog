@@ -293,17 +293,43 @@ export async function fetchSitemapEntries() {
   };
 }
 
-export async function incrementView(slug: string) {
+export async function incrementView(slug: string, reqMeta?: { country?: string; city?: string; region?: string }) {
   const supabase = db();
-  const { data } = await publishedFilter(supabase.from("posts").select("id,view_count"))
+  const { data } = await publishedFilter(supabase.from("posts").select("id,title,view_count"))
     .eq("slug", slug)
     .maybeSingle();
   if (!data) return;
+
+  const newCount = (data.view_count ?? 0) + 1;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  
+  // 1. Update post view count
   await supabaseAdmin
     .from("posts")
-    .update({ view_count: (data.view_count ?? 0) + 1 })
+    .update({ view_count: newCount })
     .eq("id", data.id);
+
+  // 2. Insert event into analytics_events table bypassing RLS
+  try {
+    const defaultCountry = reqMeta?.country || "Moçambique";
+    const defaultCountryCode = reqMeta?.country ? "MZ" : "MZ";
+    const defaultCity = reqMeta?.city || "Maputo";
+    const defaultRegion = reqMeta?.region || "Maputo";
+
+    await supabaseAdmin.from("analytics_events").insert({
+      event_type: "page_view",
+      page_path: `/blog/${slug}`,
+      session_id: `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+      device_type: "mobile",
+      country: defaultCountry,
+      country_code: defaultCountryCode,
+      city: defaultCity,
+      region: defaultRegion,
+      created_at: new Date().toISOString(),
+    });
+  } catch {
+    /* ignore analytics insertion error */
+  }
 }
 
 export async function insertContactMessage(input: {
@@ -315,6 +341,20 @@ export async function insertContactMessage(input: {
   const { error } = await db().from("contact_messages").insert(input);
   if (error) throw new Error("Não foi possível enviar a mensagem.");
   return { ok: true };
+}
+
+export async function fetchDashboardAnalyticsData() {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("analytics_events")
+      .select("id,created_at,country,country_code,city,region,page_path,device_type,session_id")
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    return data || [];
+  } catch {
+    return [];
+  }
 }
 
 export async function insertSubscriber(email: string, source: string) {

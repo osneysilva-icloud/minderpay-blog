@@ -9,6 +9,7 @@ import { Compass, KeyRound, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/admin/login")({
   beforeLoad: async () => {
+    if (typeof window === "undefined") return;
     // If the user already has a session, redirect them to dashboard
     const { data } = await supabase.auth.getSession();
     if (data.session) {

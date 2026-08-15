@@ -23,6 +23,12 @@ export const Route = createFileRoute("/admin")({
       return;
     }
 
+    // During SSR (on server), localStorage is empty so Supabase session is null.
+    // Do NOT throw a server redirect during SSR so page reloads (F5) keep the user logged in.
+    if (typeof window === "undefined") {
+      return;
+    }
+
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
       throw redirect({

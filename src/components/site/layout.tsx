@@ -447,13 +447,13 @@ export function Footer() {
           <p>
             © {year} {settings?.site_name || SITE_NAME}. Todos os direitos reservados.
           </p>
-          <p className="text-gray-700">
-            Feito com ♥ por{" "}
+          <p className="text-gray-500">
+            Desenvolvido por{" "}
             <a
               href={YOUTUBE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-500 hover:text-primary transition-colors"
+              className="text-gray-400 font-medium hover:text-primary transition-colors"
             >
               Minder Ads
             </a>

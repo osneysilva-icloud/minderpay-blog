@@ -117,11 +117,57 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
     } catch { /* ignore */ }
   }, [initialData]);
 
-  // Automatic slug generation from title
+  // Automatic Keyword & Description Extractor for Auto-SEO
+  const autoOptimizeSeo = (force = false) => {
+    if (!title && !content) {
+      if (force) toast.error("Escreva primeiro o título ou conteúdo do artigo para gerar o SEO.");
+      return;
+    }
+
+    const cleanBody = content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const autoDesc = excerpt || (cleanBody.length > 155 ? cleanBody.slice(0, 155) + "…" : cleanBody);
+    const autoSlug = slug || slugify(title);
+
+    const stopWords = new Set([
+      "como", "para", "este", "esta", "está", "estão", "com", "sem", "uma", "um",
+      "uns", "umas", "das", "dos", "nas", "nos", "por", "que", "qual", "quais",
+      "mais", "menos", "muito", "pouco", "sobre", "entre", "onde", "quando",
+      "artigo", "tutorial", "passo", "dica", "dicas", "aprender", "fazer", "saber",
+      "veja", "confira", "guia", "completo", "melhor", "melhores"
+    ]);
+
+    const words = (title + " " + cleanBody)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 3 && !stopWords.has(w));
+
+    const wordCounts: Record<string, number> = {};
+    for (const w of words) wordCounts[w] = (wordCounts[w] || 0) + 1;
+    const topKeywords = Object.keys(wordCounts).sort((a, b) => wordCounts[b] - wordCounts[a]).slice(0, 4).join(", ");
+
+    if (force || !seoTitle) setSeoTitle(title);
+    if (force || !seoDescription) setSeoDescription(autoDesc);
+    if (force || !primaryKeyword) setPrimaryKeyword(topKeywords || "marketing digital, vendas online");
+    if (force || !canonicalUrl) setCanonicalUrl(autoSlug ? `https://minderpay.com/blog/${autoSlug}` : "https://minderpay.com");
+    if (force || !ogTitle) setOgTitle(title);
+    if (force || !ogDescription) setOgDescription(autoDesc);
+    if (force || !ogImage) setOgImage(featuredImage);
+
+    if (force) toast.success("SEO gerado e otimizado automaticamente com sucesso!");
+  };
+
+  // Automatic slug & canonical URL generation from title
   const handleTitleChange = (val: string) => {
     setTitle(val);
     if (!slugManuallyEdited) {
-      setSlug(slugify(val));
+      const generatedSlug = slugify(val);
+      setSlug(generatedSlug);
+      if (!canonicalUrl || canonicalUrl.includes("minderpay.com/blog/")) {
+        setCanonicalUrl(`https://minderpay.com/blog/${generatedSlug}`);
+      }
     }
   };
 
@@ -131,6 +177,7 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
     const generated = slugify(title);
     setSlug(generated);
     setSlugManuallyEdited(false);
+    setCanonicalUrl(`https://minderpay.com/blog/${generated}`);
   };
 
   // Upload featured image
@@ -144,6 +191,7 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from("media").getPublicUrl(data.path);
       setFeaturedImage(publicUrl);
+      if (!ogImage) setOgImage(publicUrl);
       toast.success("Imagem destacada enviada!");
     } catch (err: any) {
       toast.error("Erro ao enviar: " + err.message);
@@ -175,6 +223,9 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
     const finalSlug = slugify(slug || title);
     if (!finalSlug) { toast.error("O slug (URL) é obrigatório."); return; }
 
+    const cleanBody = content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const autoDesc = excerpt || (cleanBody.length > 155 ? cleanBody.slice(0, 155) + "…" : cleanBody);
+
     const payload = {
       title,
       slug: finalSlug,
@@ -187,15 +238,15 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
       author_id: authorId || null,
       status,
       reading_time: Math.max(1, Math.ceil(content.replace(/<[^>]*>/g, "").split(/\s+/).length / 200)),
-      seo_title: seoTitle || null,
-      seo_description: seoDescription || null,
-      canonical_url: canonicalUrl || null,
+      seo_title: seoTitle || title,
+      seo_description: seoDescription || autoDesc || null,
+      canonical_url: canonicalUrl || `https://minderpay.com/blog/${finalSlug}`,
       robots_index: robotsIndex,
       robots_follow: robotsFollow,
-      og_title: ogTitle || null,
-      og_description: ogDescription || null,
-      og_image: ogImage || null,
-      primary_keyword: primaryKeyword || null,
+      og_title: ogTitle || seoTitle || title,
+      og_description: ogDescription || seoDescription || autoDesc || null,
+      og_image: ogImage || featuredImage || null,
+      primary_keyword: primaryKeyword || title.split(" ").slice(0, 4).join(", ") || null,
       published_at:
         status === "published"
           ? (initialData?.published_at || new Date().toISOString())
@@ -362,18 +413,41 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
 
           {/* ── SEO Card ── */}
           <Card className="border border-border shadow-sm">
-            <button
-              type="button"
-              onClick={() => setShowSeo(!showSeo)}
-              className="w-full flex items-center justify-between p-6 font-semibold text-foreground text-left"
-            >
-              <span className="flex items-center gap-2 font-[family-name:var(--font-display)]">
-                <Compass className="size-5 text-primary" /> SEO & Open Graph
-              </span>
-              <ChevronDown className={`size-5 text-muted-foreground transition-transform ${showSeo ? "rotate-180" : ""}`} />
-            </button>
+            <div className="flex items-center justify-between p-6">
+              <button
+                type="button"
+                onClick={() => setShowSeo(!showSeo)}
+                className="flex items-center gap-2 font-semibold text-foreground text-left font-[family-name:var(--font-display)]"
+              >
+                <Compass className="size-5 text-primary" /> SEO &amp; Open Graph
+                <ChevronDown className={`size-5 text-muted-foreground transition-transform ${showSeo ? "rotate-180" : ""}`} />
+              </button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowSeo(true);
+                  autoOptimizeSeo(true);
+                }}
+                className="gap-1.5 text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10"
+              >
+                <Sparkles className="size-3.5" /> Gerar SEO Automático
+              </Button>
+            </div>
             {showSeo && (
               <CardContent className="px-6 pb-6 space-y-5 border-t border-border pt-4">
+                {/* Auto SEO Info Banner */}
+                <div className="rounded-xl bg-primary/5 border border-primary/20 p-3.5 text-xs text-foreground flex items-start gap-2.5">
+                  <Sparkles className="size-4 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-primary">SEO 100% Automático Ativo:</span>
+                    <p className="text-muted-foreground mt-0.5">
+                      O sistema analisa o seu artigo e preenche automaticamente o Meta Title, Meta Description, Palavras-chave, Canonical URL e Tags Sociais com as melhores práticas para o Google. Não necessita de preencher nada manualmente!
+                    </p>
+                  </div>
+                </div>
+
                 {/* Google Preview */}
                 <div className="rounded-xl border border-border bg-white dark:bg-gray-900 p-4 space-y-1">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Pré-visualização Google</p>
@@ -386,21 +460,21 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-semibold text-foreground">Meta Title</label>
-                      <span className={`text-xs ${seoTitle.length > 60 ? "text-red-500" : "text-muted-foreground"}`}>{seoTitle.length}/60</span>
+                      <span className={`text-xs ${(seoTitle || title).length > 60 ? "text-red-500" : "text-muted-foreground"}`}>{(seoTitle || title).length}/60</span>
                     </div>
-                    <Input placeholder="Deixe em branco para usar o título" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
+                    <Input placeholder={title || "Preenchido automaticamente..."} value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
                     <div className="h-1 rounded-full bg-border overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${seoTitle.length > 60 ? "bg-red-500" : seoTitle.length > 45 ? "bg-yellow-500" : "bg-green-500"}`} style={{ width: `${Math.min(100, (seoTitle.length / 60) * 100)}%` }} />
+                      <div className={`h-full rounded-full transition-all ${(seoTitle || title).length > 60 ? "bg-red-500" : (seoTitle || title).length > 45 ? "bg-yellow-500" : "bg-green-500"}`} style={{ width: `${Math.min(100, ((seoTitle || title).length / 60) * 100)}%` }} />
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-semibold text-foreground">Meta Description</label>
-                      <span className={`text-xs ${seoDescription.length > 160 ? "text-red-500" : "text-muted-foreground"}`}>{seoDescription.length}/160</span>
+                      <span className={`text-xs ${(seoDescription || excerpt).length > 160 ? "text-red-500" : "text-muted-foreground"}`}>{(seoDescription || excerpt).length}/160</span>
                     </div>
-                    <Input placeholder="Deixe em branco para usar o excerto" value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} />
+                    <Input placeholder={excerpt || "Preenchido automaticamente a partir do conteúdo..."} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} />
                     <div className="h-1 rounded-full bg-border overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${seoDescription.length > 160 ? "bg-red-500" : seoDescription.length > 130 ? "bg-yellow-500" : "bg-green-500"}`} style={{ width: `${Math.min(100, (seoDescription.length / 160) * 100)}%` }} />
+                      <div className={`h-full rounded-full transition-all ${(seoDescription || excerpt).length > 160 ? "bg-red-500" : (seoDescription || excerpt).length > 130 ? "bg-yellow-500" : "bg-green-500"}`} style={{ width: `${Math.min(100, (((seoDescription || excerpt).length) / 160) * 100)}%` }} />
                     </div>
                   </div>
                 </div>

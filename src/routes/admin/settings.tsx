@@ -219,8 +219,6 @@ function SettingsManagementView() {
         bio: authorBio || null,
         avatar_url: authorAvatar || null,
         website_url: authorWebsite || null,
-        youtube_url: youtube || null,
-        instagram_url: instagram || null,
         updated_at: new Date().toISOString(),
       };
 

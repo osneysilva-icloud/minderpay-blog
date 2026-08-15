@@ -1,6 +1,6 @@
 import { i as __toESM } from "../_runtime.mjs";
 import { b as require_jsx_runtime, x as require_react } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
-import { C as subscribeToNewsletter } from "./router-BK-OawKa.mjs";
+import { C as subscribeToNewsletter } from "./router-DaAGHLTK.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
 import { n as Input, t as Button } from "./input-CEMa6_Eh.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/Newsletter-DfAOamrd.js

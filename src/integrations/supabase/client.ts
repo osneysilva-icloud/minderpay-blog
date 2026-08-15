@@ -27,21 +27,20 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 
+const SUPABASE_URL_FALLBACK = 'https://cuasomzpfrpnbnnumkma.supabase.co';
+const SUPABASE_KEY_FALLBACK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1YXNvbXpwZnJwbmJubnVta21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2OTg1MDMsImV4cCI6MjEwMjI3NDUwM30.ta-YIbR7ZHRxl-j7nPnhZ5qnMAPrKUCIH4kGKGWz2aU';
+
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
-  // Fall back to process.env for SSR (server-side rendering)
-  const SUPABASE_URL = import.meta.env['VITE_SUPABASE_URL'] || process.env['SUPABASE_URL'];
-  const SUPABASE_PUBLISHABLE_KEY = import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] || process.env['SUPABASE_PUBLISHABLE_KEY'];
-
-  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-    const missing = [
-      ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
-      ...(!SUPABASE_PUBLISHABLE_KEY ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
-    ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Please check your .env file or environment variables.`;
-    console.error(`[Supabase] ${message}`);
-    throw new Error(message);
-  }
+  // Fall back to process.env for SSR, then hardcoded fallback for Vercel runtime
+  const SUPABASE_URL =
+    import.meta.env['VITE_SUPABASE_URL'] ||
+    process.env['SUPABASE_URL'] ||
+    SUPABASE_URL_FALLBACK;
+  const SUPABASE_PUBLISHABLE_KEY =
+    import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
+    process.env['SUPABASE_PUBLISHABLE_KEY'] ||
+    SUPABASE_KEY_FALLBACK;
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {

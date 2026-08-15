@@ -1,6 +1,6 @@
 import { b as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
 import { h as Link } from "../_libs/@tanstack/react-router+[...].mjs";
-import { y as formatDate } from "./router-BK-OawKa.mjs";
+import { y as formatDate } from "./router-DaAGHLTK.mjs";
 import { ot as Clock } from "../_libs/lucide-react.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/ArticleCard-DjYHDrOQ.js
 var import_jsx_runtime = require_jsx_runtime();

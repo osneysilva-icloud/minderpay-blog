@@ -27,8 +27,15 @@ export const POST_CARD_SELECT =
 let cached: ReturnType<typeof build> | undefined;
 
 function build() {
-  const url = process.env["SUPABASE_URL"]!;
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
+  const url =
+    process.env["SUPABASE_URL"] ||
+    import.meta.env["VITE_SUPABASE_URL"] ||
+    "https://cuasomzpfrpnbnnumkma.supabase.co";
+  const key =
+    process.env["SUPABASE_PUBLISHABLE_KEY"] ||
+    import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1YXNvbXpwZnJwbmJubnVta21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2OTg1MDMsImV4cCI6MjEwMjI3NDUwM30.ta-YIbR7ZHRxl-j7nPnhZ5qnMAPrKUCIH4kGKGWz2aU";
+
   return createClient<Database>(url, key, {
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
     global: {

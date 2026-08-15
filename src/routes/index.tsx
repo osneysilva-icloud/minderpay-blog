@@ -5,7 +5,6 @@ import { useSite } from "@/components/site/site-context";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArticleCard, FeaturedArticle } from "@/components/site/ArticleCard";
-import { Newsletter } from "@/components/site/Newsletter";
 import { AdSlot } from "@/components/site/AdSlot";
 import { ArrowRight, TrendingUp } from "lucide-react";
 import { formatDateShort } from "@/lib/site";
@@ -206,13 +205,8 @@ function Index() {
           </aside>
         </div>
 
-        {/* Ad before newsletter */}
+        {/* Ad before footer */}
         <AdSlot slotKey="article_bottom" />
-
-        {/* NEWSLETTER SECTION */}
-        <section className="mt-16">
-          <Newsletter source="home" />
-        </section>
       </div>
     </SiteLayout>
   );

@@ -2,7 +2,6 @@ import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-route
 import { getPost, registerView } from "@/lib/public.functions";
 import { SiteLayout } from "@/components/site/layout";
 import { AdSlot } from "@/components/site/AdSlot";
-import { Newsletter } from "@/components/site/Newsletter";
 import { absoluteUrl, formatDate, postPath } from "@/lib/site";
 import { Calendar, Clock, Facebook, Linkedin, MessageSquare, Twitter, Share2, ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
@@ -500,11 +499,6 @@ function PostView() {
             </div>
           </section>
         )}
-
-        {/* NEWSLETTER FORM */}
-        <section className="mt-16">
-          <Newsletter source={`post_${post.slug}`} />
-        </section>
       </article>
     </SiteLayout>
   );

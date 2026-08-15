@@ -15,16 +15,14 @@ export const Route = createFileRoute("/autor/$slug")({
   loaderDeps: ({ search }) => ({ page: search.page }),
   loader: async ({ params, deps }) => {
     try {
-      const author = await getAuthorBySlug({ slug: params.slug });
+      const author = await getAuthorBySlug({ data: { slug: params.slug } });
       if (!author) {
         throw notFound();
       }
       const page = deps.page ?? 1;
       const perPage = 9;
       const posts = await listPosts({
-        page,
-        perPage,
-        authorSlug: params.slug,
+        data: { page, perPage, authorSlug: params.slug },
       });
       return { author, posts, page, perPage };
     } catch (e: any) {

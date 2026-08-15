@@ -20,23 +20,21 @@ export const Route = createFileRoute("/pesquisa")({
     const perPage = 9;
 
     if (!queryTerm) {
-      return { items: [], total: 0, page: pageNum, perPage };
+      return { q: queryTerm, posts: { items: [], total: 0 }, page: pageNum, perPage };
     }
 
     try {
       const posts = await listPosts({
-        q: queryTerm,
-        page: pageNum,
-        perPage,
+        data: { q: queryTerm, page: pageNum, perPage },
       });
-      return { posts, page: pageNum, perPage };
+      return { q: queryTerm, posts, page: pageNum, perPage };
     } catch (e) {
       console.error("Failed to fetch search results:", e);
-      return { posts: { items: [], total: 0 }, page: pageNum, perPage };
+      return { q: queryTerm, posts: { items: [], total: 0 }, page: pageNum, perPage };
     }
   },
-  head: ({ loaderData, search }) => {
-    const query = search.q || "";
+  head: ({ loaderData }) => {
+    const query = loaderData?.q ?? "";
     const siteTitle = `Pesquisa: "${query}" — MinderPay`;
     return {
       meta: [

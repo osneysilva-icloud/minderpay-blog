@@ -11,7 +11,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/blog/$slug")({
   loader: async ({ params }) => {
     try {
-      const res = await getPost({ slug: params.slug });
+      const res = await getPost({ data: { slug: params.slug } });
       
       if (res?.redirect) {
         throw redirect({
@@ -130,7 +130,7 @@ function PostView() {
   // Register page view on mount
   useEffect(() => {
     if (post?.slug) {
-      registerView({ slug: post.slug }).catch((err) =>
+      registerView({ data: { slug: post.slug } }).catch((err) =>
         console.error("Failed to register page view:", err)
       );
     }

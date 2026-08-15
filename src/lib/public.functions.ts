@@ -12,7 +12,7 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
 });
 
 export const listPosts = createServerFn({ method: "GET" })
-  .validator((input: unknown) => {
+  .inputValidator((input: unknown) => {
     const parsed = z
       .object({
         page: z.number().int().min(1).optional(),
@@ -31,7 +31,7 @@ export const listPosts = createServerFn({ method: "GET" })
   });
 
 export const getPost = createServerFn({ method: "GET" })
-  .validator((input: unknown) => {
+  .inputValidator((input: unknown) => {
     if (typeof input === "string") return { slug: input };
     if (input && typeof (input as any).slug === "string") return { slug: (input as any).slug };
     return z.object({ slug: z.string().min(1) }).parse(input);
@@ -42,7 +42,7 @@ export const getPost = createServerFn({ method: "GET" })
   });
 
 export const getCategoryBySlug = createServerFn({ method: "GET" })
-  .validator((input: unknown) => {
+  .inputValidator((input: unknown) => {
     if (typeof input === "string") return { slug: input };
     if (input && typeof (input as any).slug === "string") return { slug: (input as any).slug };
     return z.object({ slug: z.string().min(1) }).parse(input);
@@ -53,7 +53,7 @@ export const getCategoryBySlug = createServerFn({ method: "GET" })
   });
 
 export const getAuthorBySlug = createServerFn({ method: "GET" })
-  .validator((input: unknown) => {
+  .inputValidator((input: unknown) => {
     if (typeof input === "string") return { slug: input };
     if (input && typeof (input as any).slug === "string") return { slug: (input as any).slug };
     return z.object({ slug: z.string().min(1) }).parse(input);
@@ -64,7 +64,7 @@ export const getAuthorBySlug = createServerFn({ method: "GET" })
   });
 
 export const registerView = createServerFn({ method: "POST" })
-  .validator((input: unknown) => {
+  .inputValidator((input: unknown) => {
     if (typeof input === "string") return { slug: input };
     if (input && typeof (input as any).slug === "string") return { slug: (input as any).slug };
     return z.object({ slug: z.string().min(1) }).parse(input);
@@ -76,7 +76,7 @@ export const registerView = createServerFn({ method: "POST" })
   });
 
 export const sendContactMessage = createServerFn({ method: "POST" })
-  .validator((input: unknown) =>
+  .inputValidator((input: unknown) =>
     z
       .object({
         name: z.string().min(2).max(120),
@@ -92,7 +92,7 @@ export const sendContactMessage = createServerFn({ method: "POST" })
   });
 
 export const subscribeToNewsletter = createServerFn({ method: "POST" })
-  .validator((input: unknown) =>
+  .inputValidator((input: unknown) =>
     z
       .object({ email: z.string().email().max(160), source: z.string().max(60).optional() })
       .parse(input),

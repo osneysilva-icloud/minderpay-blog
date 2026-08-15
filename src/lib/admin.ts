@@ -191,7 +191,7 @@ export async function uploadMediaFile({
     .upload(storagePath, resized.blob, { contentType: resized.type, upsert: false });
   if (uploadError) throw new MediaUploadError(uploadError.message);
 
-  const publicUrl = `/api/public/media/${storagePath}`;
+  const { data: { publicUrl } } = supabase.storage.from("media").getPublicUrl(storagePath);
 
   const { data, error } = await supabase
     .from("media")

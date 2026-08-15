@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown, Compass, Save, Sparkles, Upload, CheckCircle2, Clock, AlertCircle, Wifi } from "lucide-react";
 import { RichEditor } from "@/components/admin/RichEditor";
 import { useAutosave } from "@/hooks/useAutosave";
+import { slugify } from "@/lib/admin";
 
 interface PostEditorFormProps {
   postId?: string;
@@ -23,6 +24,7 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
   // Form Fields
   const [title, setTitle] = useState(initialData?.title || "");
   const [slug, setSlug] = useState(initialData?.slug || "");
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(!!initialData?.slug);
   const [subtitle, setSubtitle] = useState(initialData?.subtitle || "");
   const [excerpt, setExcerpt] = useState(initialData?.excerpt || "");
   const [content, setContent] = useState(initialData?.content || "");
@@ -115,11 +117,20 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
     } catch { /* ignore */ }
   }, [initialData]);
 
-  // Generate slug from title
+  // Automatic slug generation from title
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    if (!slugManuallyEdited) {
+      setSlug(slugify(val));
+    }
+  };
+
+  // Explicit slug generation button
   const generateSlug = () => {
     if (!title) return;
-    const generated = title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
+    const generated = slugify(title);
     setSlug(generated);
+    setSlugManuallyEdited(false);
   };
 
   // Upload featured image
@@ -149,7 +160,7 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
   // Create new tag inline
   const createTag = async () => {
     if (!newTagName.trim()) return;
-    const slugTag = newTagName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
+    const slugTag = slugify(newTagName);
     const { data, error } = await supabase.from("tags").insert({ name: newTagName.trim(), slug: slugTag }).select("id,name").single();
     if (error) { toast.error("Erro ao criar tag: " + error.message); return; }
     setAllTags(prev => [...prev, data]);
@@ -161,10 +172,12 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
   const handleSaveSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title) { toast.error("O título é obrigatório."); return; }
-    if (!slug) { toast.error("O slug é obrigatório."); return; }
+    const finalSlug = slugify(slug || title);
+    if (!finalSlug) { toast.error("O slug (URL) é obrigatório."); return; }
 
     const payload = {
-      title, slug,
+      title,
+      slug: finalSlug,
       subtitle: subtitle || null,
       excerpt: excerpt || null,
       content,
@@ -278,7 +291,7 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
                   required
                   placeholder="Escreva um título apelativo…"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => handleTitleChange(e.target.value)}
                   className="text-base font-semibold h-12"
                 />
               </div>
@@ -293,7 +306,10 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
                     required
                     placeholder="como-ganhar-dinheiro-online"
                     value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
+                    onChange={(e) => {
+                      setSlug(e.target.value);
+                      setSlugManuallyEdited(true);
+                    }}
                     className="flex-1 font-mono text-sm"
                   />
                   <Button type="button" variant="outline" onClick={generateSlug} title="Gerar slug a partir do título">

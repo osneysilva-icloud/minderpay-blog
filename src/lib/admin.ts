@@ -39,6 +39,19 @@ export function formatDate(value: string | null | undefined): string {
   });
 }
 
+export function slugify(text: string): string {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
 export function toDateTimeLocalInput(value: string | null | undefined): string {
   const date = value ? new Date(value) : new Date();
   const offset = date.getTimezoneOffset();

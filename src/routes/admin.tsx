@@ -206,8 +206,8 @@ function AdminLayout() {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0">
-        <div className="flex-1 p-6 md:p-8">
+      <main className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
+        <div className="flex-1 p-3.5 sm:p-6 md:p-8 max-w-full overflow-x-hidden">
           <Outlet />
         </div>
       </main>

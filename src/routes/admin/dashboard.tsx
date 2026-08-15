@@ -352,9 +352,9 @@ function DashboardView() {
       {/* Live Events + Geographic Breakdown */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Live Activity Feed */}
-        <Card className="border border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="font-[family-name:var(--font-display)] text-lg font-700 flex items-center gap-2">
+        <Card className="border border-border shadow-sm max-w-full overflow-hidden">
+          <CardHeader className="pb-3">
+            <CardTitle className="font-[family-name:var(--font-display)] text-base sm:text-lg font-700 flex items-center gap-2">
               <span className="relative flex size-2.5 mr-1">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                 <span className="relative inline-flex size-2.5 rounded-full bg-green-500" />
@@ -362,17 +362,17 @@ function DashboardView() {
               Atividade em Tempo Real
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 sm:px-6">
             {(liveEvents.length > 0 || recentViews.length > 0) ? (
-              <div className="space-y-2 max-h-72 overflow-y-auto">
+              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                 {[...liveEvents, ...recentViews].slice(0, 15).map((ev: any, i) => (
-                  <div key={ev.id || i} className={`flex items-start gap-3 rounded-lg px-3 py-2 text-sm ${i < liveEvents.length ? "bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800" : "hover:bg-muted/40"}`}>
-                    <div className="mt-0.5 shrink-0 size-2 rounded-full bg-green-500 mt-1.5" />
+                  <div key={ev.id || i} className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 text-sm ${i < liveEvents.length ? "bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800" : "hover:bg-muted/40"}`}>
+                    <div className="mt-1 shrink-0 size-2 rounded-full bg-green-500" />
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">{ev.page_path || "/"}</p>
+                      <p className="font-medium text-foreground text-xs sm:text-sm break-all">{ev.page_path || "/"}</p>
                       <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground mt-0.5">
                         {ev.country && (
-                          <span>
+                          <span className="break-words">
                             {countryFlag(ev.country_code || "")}{" "}
                             {[ev.city, ev.region, ev.country].filter(Boolean).join(", ")}
                           </span>
@@ -380,7 +380,7 @@ function DashboardView() {
                         {ev.device_type && <span>· {deviceLabel(ev.device_type)}</span>}
                       </div>
                     </div>
-                    <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
+                    <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5 ml-1">
                       {new Date(ev.created_at).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
@@ -396,16 +396,16 @@ function DashboardView() {
         </Card>
 
         {/* Geographic Breakdown Card (Províncias, Cidades, Países) */}
-        <Card className="border border-border shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <CardTitle className="font-[family-name:var(--font-display)] text-lg font-700 flex items-center gap-2">
-              <MapPin className="size-5 text-primary" /> Origem das Visitas
+        <Card className="border border-border shadow-sm max-w-full overflow-hidden">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
+            <CardTitle className="font-[family-name:var(--font-display)] text-base sm:text-lg font-700 flex items-center gap-2">
+              <MapPin className="size-5 text-primary shrink-0" /> Origem das Visitas
             </CardTitle>
-            <div className="flex items-center gap-1 rounded-lg bg-muted p-1 text-xs">
+            <div className="flex items-center gap-1 rounded-lg bg-muted p-1 text-xs w-full sm:w-auto justify-between sm:justify-start overflow-x-auto">
               <button
                 type="button"
                 onClick={() => setGeoTab("provinces")}
-                className={`rounded-md px-2.5 py-1 font-semibold transition-all ${
+                className={`flex-1 sm:flex-initial rounded-md px-2.5 py-1 font-semibold text-center transition-all ${
                   geoTab === "provinces"
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -416,7 +416,7 @@ function DashboardView() {
               <button
                 type="button"
                 onClick={() => setGeoTab("cities")}
-                className={`rounded-md px-2.5 py-1 font-semibold transition-all ${
+                className={`flex-1 sm:flex-initial rounded-md px-2.5 py-1 font-semibold text-center transition-all ${
                   geoTab === "cities"
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -427,7 +427,7 @@ function DashboardView() {
               <button
                 type="button"
                 onClick={() => setGeoTab("countries")}
-                className={`rounded-md px-2.5 py-1 font-semibold transition-all ${
+                className={`flex-1 sm:flex-initial rounded-md px-2.5 py-1 font-semibold text-center transition-all ${
                   geoTab === "countries"
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"

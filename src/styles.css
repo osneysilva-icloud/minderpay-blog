@@ -4,6 +4,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Global mobile viewport anti-overflow protection */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+main {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 /*
  * MinderPay design system.
  * Editorial, confiável, orientado a negócios e tecnologia.

@@ -19,9 +19,7 @@ export const Route = createFileRoute("/blog/")({
     try {
       const perPage = 9;
       const res = await listPosts({
-        page: deps.page ?? 1,
-        perPage,
-        categorySlug: deps.categoria,
+        data: { page: deps.page ?? 1, perPage, categorySlug: deps.categoria },
       });
       return res;
     } catch (e) {

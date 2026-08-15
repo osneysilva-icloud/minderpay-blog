@@ -14,7 +14,7 @@ export function Newsletter({ source = "home" }: { source?: string }) {
 
     setLoading(true);
     try {
-      await subscribeToNewsletter({ email, source });
+      await subscribeToNewsletter({ data: { email, source } });
       toast.success("Subscrição concluída com sucesso! Obrigado.");
       setEmail("");
     } catch (err: any) {

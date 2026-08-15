@@ -16,16 +16,14 @@ export const Route = createFileRoute("/categoria/$slug")({
   loaderDeps: ({ search }) => ({ page: search.page }),
   loader: async ({ params, deps }) => {
     try {
-      const category = await getCategoryBySlug({ slug: params.slug });
+      const category = await getCategoryBySlug({ data: { slug: params.slug } });
       if (!category) {
         throw notFound();
       }
       const page = deps.page ?? 1;
       const perPage = 9;
       const posts = await listPosts({
-        page,
-        perPage,
-        categorySlug: params.slug,
+        data: { page, perPage, categorySlug: params.slug },
       });
 
       return { category, posts, page, perPage };

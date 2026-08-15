@@ -25,9 +25,7 @@ export const Route = createFileRoute("/pesquisa")({
 
     try {
       const posts = await listPosts({
-        q: queryTerm,
-        page: pageNum,
-        perPage,
+        data: { q: queryTerm, page: pageNum, perPage },
       });
       return { posts, page: pageNum, perPage };
     } catch (e) {

@@ -53,8 +53,7 @@ function publishedFilter<T>(query: T): T {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (query as any)
     .eq("status", "published")
-    .not("published_at", "is", null)
-    .lte("published_at", new Date().toISOString());
+    .not("published_at", "is", null);
 }
 
 export async function fetchSiteContext() {
@@ -188,7 +187,7 @@ export async function fetchPostList(params: ListParams) {
 
 export async function fetchPost(slug: string) {
   const supabase = db();
-  const { data } = await publishedFilter(
+  let { data } = await publishedFilter(
     supabase
       .from("posts")
       .select(
@@ -197,6 +196,19 @@ export async function fetchPost(slug: string) {
   )
     .eq("slug", slug)
     .maybeSingle();
+
+  // Fallback: search by slug directly without filtering published_at timestamp
+  if (!data) {
+    const { data: rawPost } = await supabase
+      .from("posts")
+      .select("*,category:categories(id,name,slug),author:authors(id,name,slug,bio,avatar_url,role_title,website_url,twitter_url,linkedin_url)")
+      .eq("slug", slug)
+      .maybeSingle();
+    
+    if (rawPost && rawPost.status === "published") {
+      data = rawPost;
+    }
+  }
 
   if (!data) {
     const { data: redirect } = await supabase

@@ -361,7 +361,7 @@ export function RichEditor({ content, onChange, placeholder = "Comece a escrever
     },
     editorProps: {
       attributes: {
-        class: "prose prose-stone dark:prose-invert max-w-none focus:outline-none min-h-[500px] p-6 text-foreground leading-relaxed",
+        class: "prose prose-article max-w-none focus:outline-none min-h-[500px] p-6 text-foreground leading-relaxed",
       },
     },
   });

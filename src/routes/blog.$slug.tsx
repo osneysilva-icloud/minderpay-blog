@@ -341,8 +341,7 @@ function PostView() {
           <div className="md:col-span-3 space-y-8">
             {/* Rich Text Editor Content */}
             <div
-              className="prose prose-stone dark:prose-invert max-w-none text-foreground leading-relaxed"
-              style={{ fontSize: "1.1rem" }}
+              className="prose prose-article max-w-none text-foreground leading-relaxed"
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
 

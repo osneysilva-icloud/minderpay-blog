@@ -61,6 +61,30 @@ function AdminLayout() {
     supabase.auth.getSession().then(({ data }) => {
       setUserEmail(data.session?.user?.email || null);
     });
+
+    // ── Keep-alive: refresh session every 4 minutes ──
+    // Supabase access tokens expire after 1 hour but auto-refresh requires
+    // an active call. This interval ensures the token stays fresh while the
+    // admin is editing an article for a long time.
+    const keepAliveInterval = setInterval(async () => {
+      const { error } = await supabase.auth.refreshSession();
+      if (error) {
+        console.warn("[Admin] Session refresh failed:", error.message);
+      }
+    }, 4 * 60 * 1000); // Every 4 minutes
+
+    // ── Auth state watcher: redirect only on real sign-out ──
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || (!session && event !== "INITIAL_SESSION" && event !== "TOKEN_REFRESHED")) {
+        toast.error("Sessão expirada. Por favor, inicie sessão novamente.");
+        void navigate({ to: "/admin/login" });
+      }
+    });
+
+    return () => {
+      clearInterval(keepAliveInterval);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {

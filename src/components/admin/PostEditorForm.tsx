@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronDown, Compass, Save, Sparkles, Upload, CheckCircle2, Clock } from "lucide-react";
+import { ChevronDown, Compass, Save, Sparkles, Upload, CheckCircle2, Clock, AlertCircle, Wifi } from "lucide-react";
 import { RichEditor } from "@/components/admin/RichEditor";
+import { useAutosave } from "@/hooks/useAutosave";
 
 interface PostEditorFormProps {
   postId?: string;
@@ -54,8 +55,22 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
   const [categories, setCategories] = useState<any[]>([]);
   const [authors, setAuthors] = useState<any[]>([]);
   const [showSeo, setShowSeo] = useState(false);
-  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [uploadingFeatured, setUploadingFeatured] = useState(false);
+
+  // Real-time autosave to Supabase DB (+ localStorage fallback)
+  const autosavePayload = useMemo(() => ({
+    title, slug, subtitle, excerpt, content,
+    featuredImage, featuredImageAlt,
+    categoryId, authorId, status,
+    seoTitle, seoDescription, primaryKeyword,
+  }), [title, slug, subtitle, excerpt, content, featuredImage, featuredImageAlt, categoryId, authorId, status, seoTitle, seoDescription, primaryKeyword]);
+
+  const { status: autosaveStatus, lastSavedAt } = useAutosave({
+    postId,
+    storageKey,
+    payload: autosavePayload,
+    enabled: !!(title || content),
+  });
 
   // Load categories, authors, tags
   useEffect(() => {
@@ -72,20 +87,7 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
     });
   }, []);
 
-  // Autosave on localStorage
-  useEffect(() => {
-    if (!title && !content) return;
-    setAutosaveStatus("saving");
-    const timer = setTimeout(() => {
-      const payload = { title, slug, subtitle, excerpt, content, featuredImage, featuredImageAlt, categoryId, authorId, status, seoTitle, seoDescription, primaryKeyword, autosavedAt: Date.now() };
-      localStorage.setItem(storageKey, JSON.stringify(payload));
-      setAutosaveStatus("saved");
-      setTimeout(() => setAutosaveStatus("idle"), 3000);
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, [title, slug, subtitle, excerpt, content, featuredImage, featuredImageAlt, categoryId, authorId, status, seoTitle, seoDescription, primaryKeyword]);
-
-  // Restore autosave
+  // Restore from localStorage if there is a newer autosave than the DB version
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
     if (!saved) return;
@@ -93,8 +95,9 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
       const parsed = JSON.parse(saved);
       const autosavedAt = parsed.autosavedAt || 0;
       const initialUpdatedAt = initialData?.updated_at ? new Date(initialData.updated_at).getTime() : 0;
-      if (autosavedAt > initialUpdatedAt) {
-        toast("Encontrámos um rascunho não guardado.", {
+      if (autosavedAt > initialUpdatedAt && (parsed.title || parsed.content)) {
+        toast("Encontrámos um rascunho local não guardado.", {
+          duration: 10000,
           action: {
             label: "Recuperar",
             onClick: () => {
@@ -207,14 +210,36 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-foreground">
             {isEdit ? "Editar Artigo" : "Novo Artigo"}
           </h1>
-          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="mt-1 flex items-center gap-2 text-xs">
+            {autosaveStatus === "pending" && (
+              <span className="flex items-center gap-1.5 text-amber-500">
+                <Clock className="size-3 animate-pulse" /> A preparar guardamento automático…
+              </span>
+            )}
             {autosaveStatus === "saving" && (
-              <><Clock className="size-3 animate-pulse" /> A guardar rascunho…</>
+              <span className="flex items-center gap-1.5 text-blue-500">
+                <div className="size-3 animate-spin rounded-full border border-blue-400 border-t-transparent" />
+                {postId ? "A guardar na base de dados…" : "A guardar rascunho local…"}
+              </span>
             )}
             {autosaveStatus === "saved" && (
-              <><CheckCircle2 className="size-3 text-green-500" /> Rascunho guardado automaticamente</>
+              <span className="flex items-center gap-1.5 text-green-600">
+                <CheckCircle2 className="size-3" />
+                {postId ? (
+                  <>Guardado na BD {lastSavedAt ? `às ${lastSavedAt.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : ""}</>
+                ) : "Rascunho local guardado"}
+              </span>
             )}
-            {autosaveStatus === "idle" && "Os rascunhos são guardados automaticamente."}
+            {autosaveStatus === "error" && (
+              <span className="flex items-center gap-1.5 text-red-500">
+                <AlertCircle className="size-3" /> Falha no guardamento — guardado localmente como backup
+              </span>
+            )}
+            {autosaveStatus === "idle" && (
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <Wifi className="size-3" /> {postId ? "Guardamento automático ativo (a cada 15s)" : "Novo artigo — será guardado automaticamente"}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">

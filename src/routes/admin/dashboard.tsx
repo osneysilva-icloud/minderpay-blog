@@ -20,7 +20,7 @@ export const Route = createFileRoute("/admin/dashboard")({
       supabase.from("posts").select("id,title,slug,status,updated_at,view_count").order("updated_at", { ascending: false }).limit(5),
       supabase.from("posts").select("id,title,slug,view_count").order("view_count", { ascending: false }).limit(5),
       // Last 7 days analytics (if table exists, graceful fallback)
-      supabase.from("analytics_events").select("id,created_at,country,country_code,city,page_path,device_type,session_id").gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order("created_at", { ascending: false }).limit(500),
+      supabase.from("analytics_events").select("id,created_at,country,country_code,city,region,page_path,device_type,session_id").gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order("created_at", { ascending: false }).limit(500),
     ]);
 
     const posts = postsRes.data || [];
@@ -61,7 +61,45 @@ export const Route = createFileRoute("/admin/dashboard")({
         countryMap[ev.country].count++;
       }
     });
-    const topCountries = Object.values(countryMap).sort((a, b) => b.count - a.count).slice(0, 6);
+    const topCountries = Object.values(countryMap).sort((a, b) => b.count - a.count).slice(0, 8);
+
+    // Province / Region breakdown
+    const provinceMap: Record<string, { name: string; country: string; code: string; count: number }> = {};
+    analyticsData.forEach(ev => {
+      const regionName = ev.region || ev.city;
+      if (regionName) {
+        const key = `${regionName}__${ev.country || ""}`;
+        if (!provinceMap[key]) {
+          provinceMap[key] = {
+            name: regionName,
+            country: ev.country || "",
+            code: ev.country_code || "?",
+            count: 0,
+          };
+        }
+        provinceMap[key].count++;
+      }
+    });
+    const topProvinces = Object.values(provinceMap).sort((a, b) => b.count - a.count).slice(0, 8);
+
+    // City breakdown
+    const cityMap: Record<string, { name: string; region: string; country: string; code: string; count: number }> = {};
+    analyticsData.forEach(ev => {
+      if (ev.city) {
+        const key = `${ev.city}__${ev.region || ""}__${ev.country || ""}`;
+        if (!cityMap[key]) {
+          cityMap[key] = {
+            name: ev.city,
+            region: ev.region || "",
+            country: ev.country || "",
+            code: ev.country_code || "?",
+            count: 0,
+          };
+        }
+        cityMap[key].count++;
+      }
+    });
+    const topCities = Object.values(cityMap).sort((a, b) => b.count - a.count).slice(0, 8);
 
     // Recent page views (live feed)
     const recentViews = analyticsData.slice(0, 20);
@@ -79,6 +117,8 @@ export const Route = createFileRoute("/admin/dashboard")({
       topPosts: topPostsRes.data || [],
       viewsChart,
       topCountries,
+      topProvinces,
+      topCities,
       recentViews,
       hasAnalytics: !analyticsRes.error,
     };
@@ -140,8 +180,9 @@ function deviceLabel(type: string | null) {
 
 // ─── Dashboard Component ───────────────────────────────────────────────────
 function DashboardView() {
-  const { stats, recentPosts, recentEdited, topPosts, viewsChart, topCountries, recentViews, hasAnalytics } = Route.useLoaderData();
+  const { stats, recentPosts, recentEdited, topPosts, viewsChart, topCountries, topProvinces, topCities, recentViews, hasAnalytics } = Route.useLoaderData();
   const { liveCount, liveEvents } = useLiveVisitors();
+  const [geoTab, setGeoTab] = useState<"provinces" | "cities" | "countries">("provinces");
 
   const statCards = [
     { title: "Total de Artigos", value: stats.totalPosts, icon: FileText, color: "text-blue-600 bg-blue-50 dark:bg-blue-950" },
@@ -153,6 +194,9 @@ function DashboardView() {
     { title: "Categorias", value: stats.categoriesCount, icon: FolderOpen, color: "text-teal-600 bg-teal-50 dark:bg-teal-950" },
     { title: "Tags", value: stats.tagsCount, icon: TagIcon, color: "text-pink-600 bg-pink-50 dark:bg-pink-950" },
   ];
+
+  const currentGeoList = geoTab === "provinces" ? topProvinces : geoTab === "cities" ? topCities : topCountries;
+  const maxGeoCount = currentGeoList[0]?.count || 1;
 
   return (
     <div className="space-y-8">
@@ -259,7 +303,7 @@ function DashboardView() {
         </CardContent>
       </Card>
 
-      {/* Live Events + Countries */}
+      {/* Live Events + Geographic Breakdown */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Live Activity Feed */}
         <Card className="border border-border shadow-sm">
@@ -281,7 +325,12 @@ function DashboardView() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-foreground truncate">{ev.page_path || "/"}</p>
                       <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground mt-0.5">
-                        {ev.country && <span>{countryFlag(ev.country_code || "")} {ev.city ? `${ev.city}, ` : ""}{ev.country}</span>}
+                        {ev.country && (
+                          <span>
+                            {countryFlag(ev.country_code || "")}{" "}
+                            {[ev.city, ev.region, ev.country].filter(Boolean).join(", ")}
+                          </span>
+                        )}
                         {ev.device_type && <span>· {deviceLabel(ev.device_type)}</span>}
                       </div>
                     </div>
@@ -300,30 +349,69 @@ function DashboardView() {
           </CardContent>
         </Card>
 
-        {/* Countries */}
+        {/* Geographic Breakdown Card (Províncias, Cidades, Países) */}
         <Card className="border border-border shadow-sm">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="font-[family-name:var(--font-display)] text-lg font-700 flex items-center gap-2">
-              <Globe className="size-5 text-primary" /> Visitas por País (7d)
+              <MapPin className="size-5 text-primary" /> Origem das Visitas
             </CardTitle>
+            <div className="flex items-center gap-1 rounded-lg bg-muted p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setGeoTab("provinces")}
+                className={`rounded-md px-2.5 py-1 font-semibold transition-all ${
+                  geoTab === "provinces"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Províncias
+              </button>
+              <button
+                type="button"
+                onClick={() => setGeoTab("cities")}
+                className={`rounded-md px-2.5 py-1 font-semibold transition-all ${
+                  geoTab === "cities"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Cidades
+              </button>
+              <button
+                type="button"
+                onClick={() => setGeoTab("countries")}
+                className={`rounded-md px-2.5 py-1 font-semibold transition-all ${
+                  geoTab === "countries"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Países
+              </button>
+            </div>
           </CardHeader>
           <CardContent>
-            {topCountries.length > 0 ? (
+            {currentGeoList.length > 0 ? (
               <div className="space-y-3">
-                {topCountries.map((c, i) => {
-                  const max = topCountries[0]?.count || 1;
+                {currentGeoList.map((item: any, i: number) => {
                   return (
-                    <div key={c.code} className="flex items-center gap-3">
-                      <span className="text-xl shrink-0">{countryFlag(c.code)}</span>
+                    <div key={`${item.name}-${i}`} className="flex items-center gap-3">
+                      <span className="text-xl shrink-0">{countryFlag(item.code)}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-foreground">{c.name}</span>
-                          <span className="text-xs font-bold text-muted-foreground">{c.count} visitas</span>
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="text-sm font-semibold text-foreground truncate">{item.name}</span>
+                            {item.country && item.name !== item.country && (
+                              <span className="text-xs text-muted-foreground truncate">({item.country})</span>
+                            )}
+                          </div>
+                          <span className="text-xs font-bold text-muted-foreground shrink-0 ml-2">{item.count} visita{item.count !== 1 ? "s" : ""}</span>
                         </div>
                         <div className="h-1.5 rounded-full bg-border overflow-hidden">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-400 transition-all"
-                            style={{ width: `${Math.round((c.count / max) * 100)}%` }}
+                            style={{ width: `${Math.round((item.count / maxGeoCount) * 100)}%` }}
                           />
                         </div>
                       </div>
@@ -334,7 +422,7 @@ function DashboardView() {
             ) : (
               <div className="flex items-center justify-center h-40 flex-col gap-2 text-sm text-muted-foreground">
                 <MapPin className="size-8 opacity-30" />
-                <span>Os dados de localização aparecerão aqui.</span>
+                <span>Os dados de localização ({geoTab === "provinces" ? "províncias" : geoTab === "cities" ? "cidades" : "países"}) aparecerão aqui assim que receber visitas.</span>
               </div>
             )}
           </CardContent>

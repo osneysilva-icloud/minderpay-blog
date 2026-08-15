@@ -13,6 +13,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { useSite } from "./site-context";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
+import { usePageAnalytics } from "@/hooks/usePageAnalytics";
 
 // ─── Hardcoded social links (always show, not from DB) ───────────────────────
 const WHATSAPP_URL = "https://wa.me/258864339593";
@@ -465,6 +466,10 @@ export function Footer() {
 
 // ─── SiteLayout ───────────────────────────────────────────────────────────────
 export function SiteLayout({ children }: { children: ReactNode }) {
+  // Track every public page view for analytics
+  const path = typeof window !== "undefined" ? window.location.pathname : "/";
+  usePageAnalytics(path);
+
   return (
     <div className="flex min-h-screen flex-col">
       <a

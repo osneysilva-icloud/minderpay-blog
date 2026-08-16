@@ -15,13 +15,13 @@ import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { common, createLowlight } from "lowlight";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code2, Heading1, Heading2, Heading3,
   Heading4, List, ListOrdered, Quote, Minus, Link as LinkIcon, Image as ImageIcon,
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Youtube as YoutubeIcon,
   Undo2, Redo2, RemoveFormatting, Highlighter, Palette, ChevronDown, Upload, X,
-  Loader2, Type, FileText, Braces, Table2
+  Loader2, Type, FileText, Braces, Table2, Sparkles
 } from "lucide-react";
 
 const lowlight = createLowlight(common);
@@ -58,10 +58,175 @@ const TEMPLATES = [
 ];
 
 // ──────────────────────────────────────────────
-// Toolbar button helper
+// Floating Selection Formatting Bar
+// ──────────────────────────────────────────────
+function FloatingSelectionMenu({ editor, onOpenLink }: { editor: any; onOpenLink: () => void }) {
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const updateCoords = () => {
+      const { selection } = editor.state;
+      if (!selection || selection.empty) {
+        setCoords(null);
+        return;
+      }
+
+      const domSelection = window.getSelection();
+      if (!domSelection || domSelection.rangeCount === 0) {
+        setCoords(null);
+        return;
+      }
+
+      const range = domSelection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+
+      if (rect.width === 0 || rect.height === 0) {
+        setCoords(null);
+        return;
+      }
+
+      setCoords({
+        top: Math.max(10, rect.top - 48),
+        left: Math.max(10, Math.min(window.innerWidth - 300, rect.left + rect.width / 2 - 150)),
+      });
+    };
+
+    editor.on("selectionUpdate", updateCoords);
+    editor.on("blur", () => setTimeout(() => setCoords(null), 200));
+    window.addEventListener("scroll", updateCoords, true);
+    window.addEventListener("resize", updateCoords);
+
+    return () => {
+      editor.off("selectionUpdate", updateCoords);
+      window.removeEventListener("scroll", updateCoords, true);
+      window.removeEventListener("resize", updateCoords);
+    };
+  }, [editor]);
+
+  if (!coords || !editor) return null;
+
+  return (
+    <div
+      style={{ top: `${coords.top}px`, left: `${coords.left}px` }}
+      className="fixed z-50 flex items-center gap-1 rounded-xl border border-border bg-card/98 backdrop-blur-md p-1.5 shadow-2xl text-card-foreground animate-in fade-in zoom-in-95"
+    >
+      <button
+        type="button"
+        onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}
+        className={`rounded-lg p-1.5 text-xs font-bold transition-all ${
+          editor.isActive("bold")
+            ? "bg-primary text-primary-foreground shadow-xs"
+            : "text-foreground hover:bg-muted"
+        }`}
+        title="Negrito (Ctrl+B)"
+      >
+        <Bold className="size-4" />
+      </button>
+      <button
+        type="button"
+        onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}
+        className={`rounded-lg p-1.5 text-xs font-bold transition-all ${
+          editor.isActive("italic")
+            ? "bg-primary text-primary-foreground shadow-xs"
+            : "text-foreground hover:bg-muted"
+        }`}
+        title="Itálico (Ctrl+I)"
+      >
+        <Italic className="size-4" />
+      </button>
+      <button
+        type="button"
+        onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleUnderline().run(); }}
+        className={`rounded-lg p-1.5 text-xs font-bold transition-all ${
+          editor.isActive("underline")
+            ? "bg-primary text-primary-foreground shadow-xs"
+            : "text-foreground hover:bg-muted"
+        }`}
+        title="Sublinhado (Ctrl+U)"
+      >
+        <UnderlineIcon className="size-4" />
+      </button>
+      <button
+        type="button"
+        onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleStrike().run(); }}
+        className={`rounded-lg p-1.5 text-xs font-bold transition-all ${
+          editor.isActive("strike")
+            ? "bg-primary text-primary-foreground shadow-xs"
+            : "text-foreground hover:bg-muted"
+        }`}
+        title="Tachado"
+      >
+        <Strikethrough className="size-4" />
+      </button>
+
+      <div className="h-4 w-px bg-border my-auto mx-0.5" />
+
+      <button
+        type="button"
+        onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 2 }).run(); }}
+        className={`rounded-lg px-2 py-1 text-xs font-extrabold transition-all ${
+          editor.isActive("heading", { level: 2 })
+            ? "bg-primary text-primary-foreground shadow-xs"
+            : "text-foreground hover:bg-muted"
+        }`}
+        title="Título H2"
+      >
+        H2
+      </button>
+      <button
+        type="button"
+        onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 3 }).run(); }}
+        className={`rounded-lg px-2 py-1 text-xs font-extrabold transition-all ${
+          editor.isActive("heading", { level: 3 })
+            ? "bg-primary text-primary-foreground shadow-xs"
+            : "text-foreground hover:bg-muted"
+        }`}
+        title="Subtítulo H3"
+      >
+        H3
+      </button>
+
+      <div className="h-4 w-px bg-border my-auto mx-0.5" />
+
+      <button
+        type="button"
+        onMouseDown={(e) => { e.preventDefault(); onOpenLink(); }}
+        className={`rounded-lg p-1.5 text-xs font-bold transition-all ${
+          editor.isActive("link")
+            ? "bg-primary text-primary-foreground shadow-xs"
+            : "text-foreground hover:bg-muted"
+        }`}
+        title="Inserir / Editar Link"
+      >
+        <LinkIcon className="size-4" />
+      </button>
+      <button
+        type="button"
+        onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHighlight().run(); }}
+        className={`rounded-lg p-1.5 text-xs font-bold transition-all ${
+          editor.isActive("highlight")
+            ? "bg-amber-500 text-white shadow-xs"
+            : "text-foreground hover:bg-muted"
+        }`}
+        title="Destacar Texto"
+      >
+        <Highlighter className="size-4" />
+      </button>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────
+// Sub-components
 // ──────────────────────────────────────────────
 function ToolbarButton({
-  onClick, active = false, disabled = false, title, children,
+  onClick,
+  active,
+  disabled,
+  title,
+  children,
 }: {
   onClick: () => void;
   active?: boolean;
@@ -72,16 +237,17 @@ function ToolbarButton({
   return (
     <button
       type="button"
-      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onClick();
+      }}
       disabled={disabled}
       title={title}
-      className={`inline-flex size-8 items-center justify-center rounded-md text-sm transition-colors
-        ${active
-          ? "bg-primary text-primary-foreground"
+      className={`rounded-lg p-1.5 transition-colors ${
+        active
+          ? "bg-primary text-primary-foreground font-bold shadow-xs"
           : "text-foreground/70 hover:bg-muted hover:text-foreground"
-        }
-        ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
-      `}
+      } ${disabled ? "opacity-30 cursor-not-allowed" : ""}`}
     >
       {children}
     </button>
@@ -89,115 +255,85 @@ function ToolbarButton({
 }
 
 function Divider() {
-  return <div className="mx-0.5 h-5 w-px bg-border" />;
+  return <div className="h-4 w-px bg-border my-auto mx-1 shrink-0" />;
 }
 
 // ──────────────────────────────────────────────
-// Image Upload Modal
+// Modals
 // ──────────────────────────────────────────────
-function ImageUploadModal({
-  onClose,
-  onInsert,
-}: {
-  onClose: () => void;
-  onInsert: (url: string, alt: string) => void;
-}) {
+function ImageUploadModal({ onClose, onInsert }: { onClose: () => void; onInsert: (url: string, alt: string) => void }) {
   const [tab, setTab] = useState<"upload" | "url">("upload");
   const [url, setUrl] = useState("");
   const [alt, setAlt] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
 
-  const handleUpload = async (file: File) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
-      const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { data, error } = await supabase.storage
-        .from("media")
-        .upload(`posts/${filename}`, file, { upsert: false, contentType: file.type });
-
+      const filename = `${Date.now()}.${ext}`;
+      const { data, error } = await supabase.storage.from("media").upload(`posts/${filename}`, file);
       if (error) throw error;
-
       const { data: { publicUrl } } = supabase.storage.from("media").getPublicUrl(data.path);
       setUrl(publicUrl);
       setPreview(publicUrl);
-      toast.success("Imagem enviada com sucesso!");
+      toast.success("Imagem carregada com sucesso!");
     } catch (err: any) {
-      toast.error("Erro ao enviar imagem: " + (err.message || "erro desconhecido"));
+      toast.error(err.message || "Erro ao carregar imagem.");
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) handleUpload(file);
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h3 className="font-semibold text-foreground">Inserir Imagem</h3>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 hover:bg-muted text-muted-foreground">
-            <X className="size-4" />
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-border">
-          <button
-            type="button"
-            onClick={() => setTab("upload")}
-            className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${tab === "upload" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            <Upload className="size-4 inline mr-1.5" /> Fazer Upload
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("url")}
-            className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${tab === "url" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            <LinkIcon className="size-4 inline mr-1.5" /> Por URL
-          </button>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 hover:bg-muted text-muted-foreground"><X className="size-4" /></button>
         </div>
 
         <div className="p-6 space-y-4">
+          <div className="flex gap-2 border-b border-border pb-3">
+            <button
+              type="button"
+              onClick={() => setTab("upload")}
+              className={`rounded-lg px-4 py-2 text-xs font-semibold transition-colors ${tab === "upload" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+            >
+              Fazer Upload
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("url")}
+              className={`rounded-lg px-4 py-2 text-xs font-semibold transition-colors ${tab === "url" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+            >
+              URL Externo
+            </button>
+          </div>
+
           {tab === "upload" ? (
             <>
-              <div
-                onDrop={handleDrop}
-                onDragOver={(e) => e.preventDefault()}
-                onClick={() => fileRef.current?.click()}
-                className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-muted/30 p-10 transition-colors hover:border-primary hover:bg-primary/5"
-              >
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl p-8 bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer relative">
                 {uploading ? (
                   <Loader2 className="size-8 animate-spin text-primary" />
                 ) : (
                   <>
-                    <Upload className="size-8 text-muted-foreground" />
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-foreground">Clique ou arraste uma imagem</p>
-                      <p className="mt-1 text-xs text-muted-foreground">JPG, PNG, WebP, GIF, SVG — máx. 10 MB</p>
-                    </div>
+                    <Upload className="size-8 text-muted-foreground mb-2" />
+                    <span className="text-sm font-semibold text-foreground">Clique para escolher imagem</span>
+                    <span className="text-xs text-muted-foreground mt-1">PNG, JPG, WebP até 5MB</span>
                   </>
                 )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  disabled={uploading}
+                />
               </div>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleUpload(file);
-                }}
-              />
             </>
           ) : (
             <div className="space-y-3">
@@ -278,7 +414,7 @@ function YoutubeModal({ onClose, onInsert }: { onClose: () => void; onInsert: (u
             type="button"
             disabled={!url}
             onClick={() => { onInsert(url); onClose(); }}
-            className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50"
+            className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Inserir Vídeo
           </button>
@@ -291,29 +427,59 @@ function YoutubeModal({ onClose, onInsert }: { onClose: () => void; onInsert: (u
 // ──────────────────────────────────────────────
 // Link Modal
 // ──────────────────────────────────────────────
-function LinkModal({ onClose, onInsert, initial }: { onClose: () => void; onInsert: (url: string, text: string) => void; initial?: string }) {
-  const [url, setUrl] = useState(initial || "https://");
+function LinkModal({
+  onClose,
+  onInsert,
+  initial,
+}: {
+  onClose: () => void;
+  onInsert: (url: string, text?: string) => void;
+  initial?: string;
+}) {
+  const [url, setUrl] = useState(initial || "");
   const [text, setText] = useState("");
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h3 className="font-semibold text-foreground">Inserir Link</h3>
+          <h3 className="font-semibold text-foreground">Inserir / Editar Hiperligação</h3>
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 hover:bg-muted text-muted-foreground"><X className="size-4" /></button>
         </div>
         <div className="p-6 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">URL</label>
-            <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm focus:border-primary focus:outline-none" placeholder="https://" />
+            <label className="text-xs font-semibold text-foreground">Endereço URL *</label>
+            <input
+              type="url"
+              required
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://minderpay.com..."
+              className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+            />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">Texto (opcional)</label>
-            <input type="text" value={text} onChange={(e) => setText(e.target.value)} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm focus:border-primary focus:outline-none" placeholder="Texto do link..." />
-          </div>
+          {!initial && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Texto a exibir (opcional)</label>
+              <input
+                type="text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Clique aqui..."
+                className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+              />
+            </div>
+          )}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
-          <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted">Cancelar</button>
-          <button type="button" disabled={!url} onClick={() => { onInsert(url, text); onClose(); }} className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50">Inserir</button>
+          <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">Cancelar</button>
+          <button
+            type="button"
+            disabled={!url}
+            onClick={() => { onInsert(url, text); onClose(); }}
+            className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Guardar Link
+          </button>
         </div>
       </div>
     </div>
@@ -321,48 +487,42 @@ function LinkModal({ onClose, onInsert, initial }: { onClose: () => void; onInse
 }
 
 // ──────────────────────────────────────────────
-// Main RichEditor component
+// Main RichEditor Component
 // ──────────────────────────────────────────────
-interface RichEditorProps {
+export interface RichEditorProps {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
 }
 
-export function RichEditor({ content, onChange, placeholder = "Comece a escrever o seu artigo..." }: RichEditorProps) {
+export function RichEditor({ content, onChange, placeholder = "Comece a escrever o artigo..." }: RichEditorProps) {
+  const [showTemplates, setShowTemplates] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [showYoutubeModal, setShowYoutubeModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [activeColor, setActiveColor] = useState("#000000");
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        codeBlock: false,
         heading: { levels: [1, 2, 3, 4] },
       }),
       Underline,
+      Highlight.configure({ multicolor: true }),
       TextStyle,
       Color,
-      Highlight.configure({ multicolor: true }),
       Typography,
+      Image.configure({ inline: false, allowBase64: true }),
+      Link.configure({ openOnClick: false, HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" } }),
+      Youtube.configure({ inline: false }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true }),
-      Image.configure({ allowBase64: false, inline: false }),
-      Youtube.configure({ controls: true, modestBranding: true }),
       Placeholder.configure({ placeholder }),
       CharacterCount,
       CodeBlockLowlight.configure({ lowlight }),
     ],
-    content,
+    content: content || "",
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
-    },
-    editorProps: {
-      attributes: {
-        class: "prose prose-article max-w-none focus:outline-none min-h-[500px] p-6 text-foreground leading-relaxed",
-      },
     },
   });
 
@@ -376,7 +536,7 @@ export function RichEditor({ content, onChange, placeholder = "Comece a escrever
     editor.chain().focus().setYoutubeVideo({ src: url }).run();
   }, [editor]);
 
-  const insertLink = useCallback((url: string, text: string) => {
+  const insertLink = useCallback((url: string, text?: string) => {
     if (!editor) return;
     if (text && editor.state.selection.empty) {
       editor.chain().focus().insertContent(`<a href="${url}">${text}</a>`).run();
@@ -385,7 +545,6 @@ export function RichEditor({ content, onChange, placeholder = "Comece a escrever
     }
   }, [editor]);
 
-  // Handle image paste from clipboard
   const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
     const items = Array.from(e.clipboardData.items);
     const imageItem = items.find(item => item.type.startsWith("image/"));
@@ -404,18 +563,18 @@ export function RichEditor({ content, onChange, placeholder = "Comece a escrever
     toast.success("Imagem inserida!");
   }, [editor]);
 
-  const COLORS = ["#000000", "#374151", "#6b7280", "#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#ffffff"];
-  const HIGHLIGHT_COLORS = ["#fef08a", "#bbf7d0", "#bfdbfe", "#fecaca", "#f5d0fe", "#fed7aa"];
-
   const wordCount = editor?.storage.characterCount?.words() ?? 0;
   const charCount = editor?.storage.characterCount?.characters() ?? 0;
 
   if (!editor) return null;
 
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-      {/* ── Toolbar ── */}
-      <div className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur-sm">
+    <div className="flex flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden relative">
+      {/* ── Floating Selection Formatting Bar (Aparece ao selecionar qualquer texto) ── */}
+      <FloatingSelectionMenu editor={editor} onOpenLink={() => setShowLinkModal(true)} />
+
+      {/* ── Toolbar Fixa / Sticky ── */}
+      <div className="sticky top-[52px] sm:top-0 z-20 border-b border-border bg-card/98 backdrop-blur-md shadow-xs">
         {/* Row 1 */}
         <div className="flex flex-wrap items-center gap-0.5 px-3 py-2 border-b border-border/50">
           {/* Templates */}

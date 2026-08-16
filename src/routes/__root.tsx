@@ -130,9 +130,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           rel: "stylesheet",
           href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap",
         },
-        { rel: "icon", type: "image/svg+xml", href: settings?.favicon_url || "/favicon.svg" },
-        { rel: "alternate icon", type: "image/x-icon", href: "/favicon.ico" },
-        { rel: "apple-touch-icon", href: settings?.favicon_url || "/favicon.svg" },
+        { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+        { rel: "shortcut icon", type: "image/svg+xml", href: "/favicon.svg" },
+        { rel: "apple-touch-icon", href: "/favicon.svg" },
       ],
       scripts: [
         ...(ga

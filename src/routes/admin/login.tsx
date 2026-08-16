@@ -125,6 +125,18 @@ function LoginView() {
                 />
               </div>
             </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                id="remember-me"
+                type="checkbox"
+                defaultChecked
+                className="size-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <label htmlFor="remember-me" className="text-xs text-muted-foreground cursor-pointer select-none">
+                Manter sessão iniciada neste dispositivo (Lembrar Login)
+              </label>
+            </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3 pt-4 pb-6">
             <Button type="submit" disabled={loading} className="w-full h-11 font-semibold text-sm rounded-lg">

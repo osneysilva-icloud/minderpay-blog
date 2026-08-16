@@ -14,6 +14,8 @@ import {
   X,
   User,
   Compass,
+  ShieldCheck,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,34 +25,14 @@ export const Route = createFileRoute("/admin")({
       return;
     }
 
-    // During SSR (on server), localStorage is empty so Supabase session is null.
-    // Do NOT throw a server redirect during SSR so page reloads (F5) keep the user logged in.
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
-      throw redirect({
-        to: "/admin/login",
-      });
-    }
-
-    // Secondary validation: check role in user_roles
-    const { data: userRole } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", data.session.user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    if (!userRole) {
-      console.warn("User authenticated but lacks admin role. Logging out.");
-      await supabase.auth.signOut();
-      toast.error("Acesso negado: Apenas administradores podem aceder a esta área.");
-      throw redirect({
-        to: "/admin/login",
-      });
+    // Only run auth check on client where localStorage exists
+    if (typeof window !== "undefined") {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        throw redirect({
+          to: "/admin/login",
+        });
+      }
     }
   },
   component: AdminLayout,
@@ -58,40 +40,105 @@ export const Route = createFileRoute("/admin")({
 
 function AdminLayout() {
   const navigate = useNavigate();
-  const location = Route.useSearch();
   const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+  const isLoginPage = currentPath === "/admin/login";
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(!isLoginPage);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUserEmail(data.session?.user?.email || null);
-    });
+    if (isLoginPage) {
+      setCheckingAuth(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    async function verifyAdminAuth() {
+      try {
+        // 1. Fetch current session
+        const { data: sessionData } = await supabase.auth.getSession();
+        let session = sessionData?.session;
+
+        // 2. Try auto-refreshing token if existing session is close to expiry
+        if (session) {
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          if (refreshData?.session) {
+            session = refreshData.session;
+          }
+        }
+
+        if (!session) {
+          if (isMounted) {
+            setIsAuthenticated(false);
+            setCheckingAuth(false);
+            void navigate({ to: "/admin/login" });
+          }
+          return;
+        }
+
+        // 3. Verify admin role strictly in database
+        const { data: userRole, error: roleErr } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+
+        if (roleErr || !userRole) {
+          console.warn("[AdminAuth] Unauthorized access attempt detected. Signing out.");
+          await supabase.auth.signOut();
+          if (isMounted) {
+            setIsAuthenticated(false);
+            setCheckingAuth(false);
+            toast.error("Acesso negado: Apenas administradores podem aceder ao painel.");
+            void navigate({ to: "/admin/login" });
+          }
+          return;
+        }
+
+        if (isMounted) {
+          setUserEmail(session.user.email || null);
+          setIsAuthenticated(true);
+          setCheckingAuth(false);
+        }
+      } catch (err) {
+        console.error("[AdminAuth] Auth verification error:", err);
+        if (isMounted) {
+          setIsAuthenticated(false);
+          setCheckingAuth(false);
+          void navigate({ to: "/admin/login" });
+        }
+      }
+    }
+
+    void verifyAdminAuth();
 
     // ── Keep-alive: refresh session every 4 minutes ──
-    // Supabase access tokens expire after 1 hour but auto-refresh requires
-    // an active call. This interval ensures the token stays fresh while the
-    // admin is editing an article for a long time.
     const keepAliveInterval = setInterval(async () => {
       const { error } = await supabase.auth.refreshSession();
       if (error) {
         console.warn("[Admin] Session refresh failed:", error.message);
       }
-    }, 4 * 60 * 1000); // Every 4 minutes
+    }, 4 * 60 * 1000);
 
-    // ── Auth state watcher: redirect only on real sign-out ──
+    // ── Auth state watcher: redirect immediately on sign-out ──
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || (!session && event !== "INITIAL_SESSION" && event !== "TOKEN_REFRESHED")) {
-        toast.error("Sessão expirada. Por favor, inicie sessão novamente.");
+      if (event === "SIGNED_OUT" || (!session && event !== "INITIAL_SESSION")) {
+        setIsAuthenticated(false);
+        toast.error("Sessão terminada. Por favor, inicie sessão novamente.");
         void navigate({ to: "/admin/login" });
       }
     });
 
     return () => {
+      isMounted = false;
       clearInterval(keepAliveInterval);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isLoginPage, navigate]);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -112,13 +159,35 @@ function AdminLayout() {
     { label: "Configurações", href: "/admin/settings", icon: Settings },
   ];
 
-  // If we are on the login page, just render the child route (which is the login form) without admin layout
-  if (currentPath === "/admin/login") {
+  // Render child login route cleanly
+  if (isLoginPage) {
     return <Outlet />;
   }
 
+  // Render auth checking shield until session is 100% verified
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-card flex flex-col items-center justify-center p-6 text-center">
+        <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary animate-bounce mb-4 border border-primary/20 shadow-sm">
+          <ShieldCheck className="size-7" />
+        </div>
+        <h2 className="text-lg font-bold text-foreground font-[family-name:var(--font-display)]">
+          MinderPay Admin
+        </h2>
+        <p className="mt-1 text-xs text-muted-foreground max-w-xs">
+          A verificar credenciais e permissões de administrador…
+        </p>
+      </div>
+    );
+  }
+
+  // Prevent rendering admin layout if unauthenticated
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-muted/20 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-muted/20 flex flex-col md:flex-row max-w-full overflow-x-hidden">
       {/* Mobile Top Bar */}
       <header className="md:hidden flex items-center justify-between bg-card border-b border-border px-4 py-3 sticky top-0 z-50">
         <div className="flex items-center gap-2">

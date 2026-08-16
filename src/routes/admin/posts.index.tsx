@@ -236,9 +236,88 @@ function PostsManagementView() {
         </div>
       </div>
 
-      {/* Table Card */}
+      {/* Posts Listing Container */}
       <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+        {/* Mobile View: Cards Layout (sm:hidden) */}
+        <div className="block sm:hidden divide-y divide-border">
+          {posts.length > 0 ? (
+            posts.map((post) => (
+              <div key={post.id} className="p-4 space-y-3 bg-card hover:bg-muted/10 transition-colors">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <h3 className="font-semibold text-foreground text-sm leading-snug break-words">
+                      {post.title}
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground">
+                        {post.category?.name || "Sem categoria"}
+                      </span>
+                      <span>·</span>
+                      <span>{post.view_count || 0} leituras</span>
+                    </div>
+                  </div>
+                  <div className="shrink-0 mt-0.5">
+                    <StatusBadge status={post.status} />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground border-t border-border/40 pt-2">
+                  <span>Autor: {post.author?.name || "Sem autor"}</span>
+                  <span>{formatDateShort(post.published_at)}</span>
+                </div>
+
+                {/* Mobile Action Bar with High-Contrast Text Labels */}
+                <div className="grid grid-cols-4 gap-1.5 pt-1">
+                  <Link
+                    to={`/admin/posts/${post.id}`}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 dark:bg-blue-700 text-white px-2.5 py-2 text-xs font-bold shadow-xs hover:bg-blue-700 transition-colors"
+                  >
+                    <Edit2 className="size-3.5" />
+                    <span>Editar</span>
+                  </Link>
+
+                  <Link
+                    to="/blog/$slug"
+                    params={{ slug: post.slug }}
+                    target="_blank"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-700 px-2.5 py-2 text-xs font-semibold hover:bg-gray-200 transition-colors"
+                  >
+                    <Eye className="size-3.5 text-gray-600 dark:text-gray-400" />
+                    <span>Ver</span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => togglePublishStatus(post.id, post.status)}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 px-2.5 py-2 text-xs font-semibold hover:bg-amber-200 transition-colors"
+                  >
+                    {post.status === "published" ? <Archive className="size-3.5" /> : <Globe className="size-3.5" />}
+                    <span>{post.status === "published" ? "Arquivar" : "Publicar"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteId(post.id);
+                      setConfirmOpen(true);
+                    }}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-800 px-2.5 py-2 text-xs font-bold hover:bg-red-200 transition-colors"
+                  >
+                    <Trash2 className="size-3.5 text-red-600 dark:text-red-400" />
+                    <span>Apagar</span>
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              Nenhum artigo encontrado para a seleção atual.
+            </div>
+          )}
+        </div>
+
+        {/* Desktop View: Table Layout (hidden sm:block) */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead>
               <tr className="border-b border-border bg-muted/20 text-xs font-bold text-muted-foreground uppercase tracking-wider">
@@ -277,10 +356,10 @@ function PostsManagementView() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => togglePublishStatus(post.id, post.status)}
-                          className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                          className="rounded-lg p-2 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 transition-colors"
                           title={post.status === "published" ? "Despublicar Artigo" : "Publicar Artigo"}
                         >
                           {post.status === "published" ? <Archive className="size-4" /> : <Globe className="size-4" />}
@@ -289,14 +368,14 @@ function PostsManagementView() {
                           to="/blog/$slug"
                           params={{ slug: post.slug }}
                           target="_blank"
-                          className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                          className="rounded-lg p-2 bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 transition-colors"
                           title="Visualizar Artigo Público"
                         >
                           <Eye className="size-4" />
                         </Link>
                         <Link
                           to={`/admin/posts/${post.id}`}
-                          className="rounded-lg p-2 text-primary hover:bg-primary/10 transition-colors"
+                          className="rounded-lg p-2 bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition-colors"
                           title="Editar Artigo"
                         >
                           <Edit2 className="size-4" />
@@ -306,7 +385,7 @@ function PostsManagementView() {
                             setDeleteId(post.id);
                             setConfirmOpen(true);
                           }}
-                          className="rounded-lg p-2 text-destructive hover:bg-destructive/10 transition-colors"
+                          className="rounded-lg p-2 bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 transition-colors"
                           title="Excluir Artigo"
                         >
                           <Trash2 className="size-4" />

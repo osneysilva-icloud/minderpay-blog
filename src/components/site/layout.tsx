@@ -8,6 +8,8 @@ import {
   MessageCircle,
   ArrowRight,
   ChevronRight,
+  ExternalLink,
+  Laptop,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
@@ -16,10 +18,11 @@ import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
 import { usePageAnalytics } from "@/hooks/usePageAnalytics";
 import { PwaInstaller } from "./PwaInstaller";
 
-// ─── Hardcoded social links (always show, not from DB) ───────────────────────
+// ─── Hardcoded links ─────────────────────────────────────────────────────────
 const WHATSAPP_URL = "https://wa.me/258864339593";
 const INSTAGRAM_URL = "https://www.instagram.com/minderads/";
 const YOUTUBE_URL = "https://www.youtube.com/@MinderAds";
+const PORTFOLIO_URL = "https://www.webdesign-minder.site/#portfolio";
 
 // ─── Logo ─────────────────────────────────────────────────────────────────────
 export function Logo({ compact = false }: { compact?: boolean }) {
@@ -112,10 +115,17 @@ export function Header() {
       {/* ── Top bar ── */}
       <div className="bg-gray-950 text-gray-300 text-xs">
         <div className="container-page flex h-8 items-center justify-between gap-4">
-          <span className="hidden sm:block opacity-60 tracking-wide">
-            Expert em vendas de infoprodutos &amp; marketing digital
-          </span>
-          <div className="flex items-center gap-3 ml-auto">
+          <a
+            href={PORTFOLIO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 transition-colors font-medium truncate"
+            title="Criação de Estruturas de Vendas & Web Development"
+          >
+            <Laptop className="size-3.5 shrink-0" />
+            <span className="truncate">🚀 <strong>Serviços Web:</strong> Estruturas de Vendas até 100k/mês →</span>
+          </a>
+          <div className="flex items-center gap-3 ml-auto shrink-0">
             <a
               href={WHATSAPP_URL}
               target="_blank"
@@ -168,7 +178,7 @@ export function Header() {
                   Artigos
                 </Link>
               </li>
-              {categories.slice(0, 6).map((category) => (
+              {categories.slice(0, 5).map((category) => (
                 <li key={category.id}>
                   <Link
                     to="/categoria/$slug"
@@ -181,6 +191,17 @@ export function Header() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <a
+                  href={PORTFOLIO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-bold text-primary bg-primary/10 hover:bg-primary/20 transition-all border border-primary/30 ml-1"
+                >
+                  <span>Serviços Web</span>
+                  <ExternalLink className="size-3.5" />
+                </a>
+              </li>
             </ul>
           </nav>
 
@@ -236,6 +257,21 @@ export function Header() {
           className="border-b border-border bg-card lg:hidden"
         >
           <ul className="container-page grid gap-1 py-3">
+            <li>
+              <a
+                href={PORTFOLIO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center justify-between rounded-lg bg-primary/10 border border-primary/30 px-3.5 py-3 text-base font-bold text-primary hover:bg-primary/20 transition-all"
+              >
+                <span className="flex items-center gap-2">
+                  <Laptop className="size-4 text-primary" />
+                  Serviços Web &amp; Estruturas (Até 100k/mês)
+                </span>
+                <ExternalLink className="size-4 text-primary shrink-0" />
+              </a>
+            </li>
             <li>
               <Link
                 to="/blog"
@@ -350,11 +386,22 @@ export function Footer() {
         </nav>
 
         {/* ── MinderPay links ── */}
-        <nav aria-label="Institucional" className="space-y-4">
+        <nav aria-label="Institucional & Serviços" className="space-y-4">
           <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">
-            MinderPay
+            MinderPay &amp; Serviços
           </h2>
           <ul className="space-y-2.5 text-sm">
+            <li>
+              <a
+                href={PORTFOLIO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 font-bold text-amber-400 hover:text-amber-300 transition-colors"
+              >
+                <ArrowRight className="size-3.5 shrink-0 text-amber-400" />
+                💻 Serviços Web (Estruturas até 100k/mês)
+              </a>
+            </li>
             {[
               { to: "/sobre" as const, label: "Sobre" },
               { to: "/contacto" as const, label: "Contacto" },

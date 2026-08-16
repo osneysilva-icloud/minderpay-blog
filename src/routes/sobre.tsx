@@ -220,6 +220,40 @@ function AboutView() {
         </div>
       </section>
 
+      {/* ── Web Development & Sales Structures Portfolio Banner ── */}
+      <section className="container-page py-12 max-w-5xl mx-auto">
+        <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-950/40 via-gray-900 to-gray-950 p-8 sm:p-12 shadow-2xl text-white relative overflow-hidden">
+          <div className="pointer-events-none absolute -right-10 -bottom-10 size-64 rounded-full bg-amber-500/10 blur-3xl" />
+          <div className="relative z-10 grid gap-8 lg:grid-cols-3 items-center">
+            <div className="lg:col-span-2 space-y-4">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 px-3.5 py-1 text-xs font-bold text-amber-400 border border-amber-500/40 uppercase tracking-wider">
+                💻 Prestação de Serviços Web Development
+              </span>
+              <h2 className="font-[family-name:var(--font-display)] text-2xl sm:text-4xl font-extrabold leading-tight text-white">
+                Crio Estruturas de Vendas que Rendem até <span className="text-amber-400">100 Mil Mensal</span>
+              </h2>
+              <p className="text-gray-300 text-sm sm:text-base leading-relaxed">
+                Desenvolvo sites de alta conversão, landing pages ultra-rápidas, e-commerces e funis automáticos desenhados para gerar vendas diárias para o seu negócio.
+              </p>
+            </div>
+            <div className="flex flex-col items-center lg:items-end justify-center">
+              <a
+                href="https://www.webdesign-minder.site/#portfolio"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-4 text-base font-extrabold text-gray-950 shadow-xl transition-all hover:from-amber-400 hover:to-amber-500 hover:scale-105 hover:shadow-amber-500/30"
+              >
+                <span>Ver Portfólio de Serviços</span>
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </a>
+              <span className="mt-2 text-xs text-gray-400">www.webdesign-minder.site</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA Section ── */}
       <section className="py-20 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
         <div className="container-page text-center max-w-2xl mx-auto">

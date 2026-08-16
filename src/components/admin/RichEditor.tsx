@@ -533,6 +533,11 @@ export function RichEditor({ content, onChange, placeholder = "Comece a escrever
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    editorProps: {
+      attributes: {
+        class: "prose prose-article max-w-none focus:outline-none min-h-[500px] p-6 text-foreground leading-relaxed",
+      },
+    },
   });
 
   const insertImage = useCallback((url: string, alt: string) => {

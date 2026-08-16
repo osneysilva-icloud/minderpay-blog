@@ -1,22 +1,66 @@
-import { createFileRoute, useNavigate, useRouter, notFound } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PostEditorForm } from "@/components/admin/PostEditorForm";
+import { ArrowLeft, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/admin/posts/$id")({
   loader: async ({ params }) => {
-    const { data, error } = await supabase
-      .from("posts")
-      .select("*, post_tags(tag_id)")
-      .eq("id", params.id)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("*, post_tags(tag_id)")
+        .eq("id", params.id)
+        .maybeSingle();
 
-    if (error || !data) {
-      throw notFound();
+      if (error) {
+        console.error("Erro Supabase em posts.$id:", error);
+        throw new Error(error.message || "Erro ao consultar artigo na base de dados.");
+      }
+
+      if (!data) {
+        throw new Error("Artigo não encontrado ou foi excluído.");
+      }
+
+      return data;
+    } catch (err: any) {
+      console.error("Erro no loader de posts.$id:", err);
+      throw err;
     }
-    return data;
   },
+  notFoundComponent: () => (
+    <div className="flex flex-col items-center justify-center p-12 text-center bg-card border border-border rounded-2xl my-8">
+      <AlertCircle className="size-12 text-amber-500 mb-3" />
+      <h2 className="text-2xl font-bold text-foreground">Artigo Não Encontrado</h2>
+      <p className="text-sm text-muted-foreground mt-2 max-w-md">
+        O artigo que está a tentar editar não foi encontrado na base de dados ou pode ter sido eliminado.
+      </p>
+      <Link
+        to="/admin/posts"
+        search={{ page: 1 }}
+        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-md hover:bg-primary/90 transition-all"
+      >
+        <ArrowLeft className="size-4" /> Voltar à Lista de Artigos
+      </Link>
+    </div>
+  ),
+  errorComponent: ({ error }) => (
+    <div className="flex flex-col items-center justify-center p-12 text-center bg-card border border-border rounded-2xl my-8">
+      <AlertCircle className="size-12 text-red-500 mb-3" />
+      <h2 className="text-2xl font-bold text-foreground">Erro ao Carregar Artigo</h2>
+      <p className="text-sm text-muted-foreground mt-2 max-w-md">
+        {error?.message || "Ocorreu um erro ao carregar os dados deste artigo."}
+      </p>
+      <Link
+        to="/admin/posts"
+        search={{ page: 1 }}
+        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-md hover:bg-primary/90 transition-all"
+      >
+        <ArrowLeft className="size-4" /> Voltar à Lista de Artigos
+      </Link>
+    </div>
+  ),
   component: EditPostView,
 });
 

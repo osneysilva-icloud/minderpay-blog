@@ -269,7 +269,8 @@ function PostsManagementView() {
                 {/* Mobile Action Bar with High-Contrast Text Labels */}
                 <div className="grid grid-cols-4 gap-1.5 pt-1">
                   <Link
-                    to={`/admin/posts/${post.id}`}
+                    to="/admin/posts/$id"
+                    params={{ id: post.id }}
                     className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 dark:bg-blue-700 text-white px-2.5 py-2 text-xs font-bold shadow-xs hover:bg-blue-700 transition-colors"
                   >
                     <Edit2 className="size-3.5" />
@@ -374,7 +375,8 @@ function PostsManagementView() {
                           <Eye className="size-4" />
                         </Link>
                         <Link
-                          to={`/admin/posts/${post.id}`}
+                          to="/admin/posts/$id"
+                          params={{ id: post.id }}
                           className="rounded-lg p-2 bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition-colors"
                           title="Editar Artigo"
                         >

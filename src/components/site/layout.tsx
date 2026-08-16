@@ -17,6 +17,7 @@ import { useSite } from "./site-context";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
 import { usePageAnalytics } from "@/hooks/usePageAnalytics";
 import { PwaInstaller } from "./PwaInstaller";
+import { CookieBanner } from "./CookieBanner";
 
 // ─── Hardcoded links ─────────────────────────────────────────────────────────
 const WHATSAPP_URL = "https://wa.me/258864339593";
@@ -532,6 +533,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       </main>
       <Footer />
       <PwaInstaller />
+      <CookieBanner />
     </div>
   );
 }

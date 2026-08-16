@@ -364,23 +364,25 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-foreground">Slug (URL)</label>
-                <div className="flex gap-2">
-                  <span className="flex items-center text-xs text-muted-foreground bg-muted border border-border px-3 rounded-lg select-none shrink-0">
+                <div className="flex flex-col sm:flex-row gap-2 w-full max-w-full overflow-hidden">
+                  <span className="flex items-center text-xs text-muted-foreground bg-muted border border-border px-3 py-2 sm:py-0 rounded-lg select-none shrink-0 truncate">
                     minderpay.com/blog/
                   </span>
-                  <Input
-                    required
-                    placeholder="como-ganhar-dinheiro-online"
-                    value={slug}
-                    onChange={(e) => {
-                      setSlug(e.target.value);
-                      setSlugManuallyEdited(true);
-                    }}
-                    className="flex-1 font-mono text-sm"
-                  />
-                  <Button type="button" variant="outline" onClick={generateSlug} title="Gerar slug a partir do título">
-                    <Sparkles className="size-4" />
-                  </Button>
+                  <div className="flex flex-1 gap-2 min-w-0">
+                    <Input
+                      required
+                      placeholder="como-ganhar-dinheiro-online"
+                      value={slug}
+                      onChange={(e) => {
+                        setSlug(e.target.value);
+                        setSlugManuallyEdited(true);
+                      }}
+                      className="flex-1 font-mono text-sm min-w-0"
+                    />
+                    <Button type="button" variant="outline" onClick={generateSlug} title="Gerar slug a partir do título" className="shrink-0">
+                      <Sparkles className="size-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -395,14 +397,14 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
                   placeholder="Breve resumo exibido nos cards do blog e nas meta tags de redes sociais…"
                   value={excerpt}
                   onChange={(e) => setExcerpt(e.target.value)}
-                  rows={2}
+                  className="min-h-[80px] text-sm"
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* ── Rich Editor ── */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 max-w-full overflow-hidden">
             <label className="text-xs font-semibold text-foreground">Conteúdo do Artigo *</label>
             <RichEditor
               content={content}
@@ -412,14 +414,14 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
           </div>
 
           {/* ── SEO Card ── */}
-          <Card className="border border-border shadow-sm">
-            <div className="flex items-center justify-between p-6">
+          <Card className="border border-border shadow-sm max-w-full overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 gap-3">
               <button
                 type="button"
                 onClick={() => setShowSeo(!showSeo)}
                 className="flex items-center gap-2 font-semibold text-foreground text-left font-[family-name:var(--font-display)]"
               >
-                <Compass className="size-5 text-primary" /> SEO &amp; Open Graph
+                <Compass className="size-5 text-primary shrink-0" /> SEO &amp; Open Graph
                 <ChevronDown className={`size-5 text-muted-foreground transition-transform ${showSeo ? "rotate-180" : ""}`} />
               </button>
               <Button
@@ -430,13 +432,13 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
                   setShowSeo(true);
                   autoOptimizeSeo(true);
                 }}
-                className="gap-1.5 text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10"
+                className="gap-1.5 text-xs font-semibold border-primary/30 text-primary hover:bg-primary/10 w-full sm:w-auto"
               >
                 <Sparkles className="size-3.5" /> Gerar SEO Automático
               </Button>
             </div>
             {showSeo && (
-              <CardContent className="px-6 pb-6 space-y-5 border-t border-border pt-4">
+              <CardContent className="p-4 sm:p-6 space-y-5 border-t border-border pt-4">
                 {/* Auto SEO Info Banner */}
                 <div className="rounded-xl bg-primary/5 border border-primary/20 p-3.5 text-xs text-foreground flex items-start gap-2.5">
                   <Sparkles className="size-4 text-primary shrink-0 mt-0.5" />
@@ -449,11 +451,11 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
                 </div>
 
                 {/* Google Preview */}
-                <div className="rounded-xl border border-border bg-white dark:bg-gray-900 p-4 space-y-1">
+                <div className="rounded-xl border border-border bg-white dark:bg-gray-900 p-3.5 sm:p-4 space-y-1 max-w-full overflow-hidden">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Pré-visualização Google</p>
-                  <p className="text-xs text-green-700 dark:text-green-400 truncate">{previewSlug}</p>
-                  <p className="text-base text-blue-700 dark:text-blue-400 font-medium truncate leading-snug">{previewTitle.slice(0, 60)}{previewTitle.length > 60 ? "…" : ""}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">{previewDesc.slice(0, 160)}{previewDesc.length > 160 ? "…" : ""}</p>
+                  <p className="text-xs text-green-700 dark:text-green-400 break-all">{previewSlug}</p>
+                  <p className="text-base text-blue-700 dark:text-blue-400 font-medium break-words leading-snug">{previewTitle.slice(0, 60)}{previewTitle.length > 60 ? "…" : ""}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed break-words">{previewDesc.slice(0, 160)}{previewDesc.length > 160 ? "…" : ""}</p>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">

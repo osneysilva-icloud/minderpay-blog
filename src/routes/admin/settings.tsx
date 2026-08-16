@@ -310,22 +310,24 @@ function SettingsManagementView() {
         </p>
       </div>
 
-      <Tabs defaultValue="geral" className="w-full">
-        <TabsList className="bg-muted w-full justify-start overflow-x-auto p-1 flex gap-1">
-          <TabsTrigger value="geral" className="flex items-center gap-1.5"><Settings className="size-4" /> Geral</TabsTrigger>
-          <TabsTrigger value="autor" className="flex items-center gap-1.5"><User className="size-4" /> Perfil do Autor</TabsTrigger>
-          <TabsTrigger value="seo" className="flex items-center gap-1.5"><Compass className="size-4" /> SEO & Analytics</TabsTrigger>
-          <TabsTrigger value="redes" className="flex items-center gap-1.5"><Share2 className="size-4" /> Redes & Contactos</TabsTrigger>
-          <TabsTrigger value="anuncios" className="flex items-center gap-1.5"><BadgePercent className="size-4" /> Publicidade</TabsTrigger>
-          <TabsTrigger value="mensagens" className="flex items-center gap-1.5 relative">
-            <Mail className="size-4" /> Mensagens
-            {messages.length > 0 && (
-              <span className="ml-1 rounded-full bg-primary px-1.5 py-0.2 text-[10px] font-bold text-primary-foreground">
-                {messages.length}
-              </span>
-            )}
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="geral" className="w-full max-w-full overflow-hidden">
+        <div className="w-full max-w-full overflow-x-auto pb-1">
+          <TabsList className="bg-muted w-max min-w-full justify-start p-1 flex gap-1 whitespace-nowrap">
+            <TabsTrigger value="geral" className="flex items-center gap-1.5 shrink-0"><Settings className="size-4" /> Geral</TabsTrigger>
+            <TabsTrigger value="autor" className="flex items-center gap-1.5 shrink-0"><User className="size-4" /> Perfil do Autor</TabsTrigger>
+            <TabsTrigger value="seo" className="flex items-center gap-1.5 shrink-0"><Compass className="size-4" /> SEO &amp; Analytics</TabsTrigger>
+            <TabsTrigger value="redes" className="flex items-center gap-1.5 shrink-0"><Share2 className="size-4" /> Redes &amp; Contactos</TabsTrigger>
+            <TabsTrigger value="anuncios" className="flex items-center gap-1.5 shrink-0"><BadgePercent className="size-4" /> Publicidade</TabsTrigger>
+            <TabsTrigger value="mensagens" className="flex items-center gap-1.5 shrink-0 relative">
+              <Mail className="size-4" /> Mensagens
+              {messages.length > 0 && (
+                <span className="ml-1 rounded-full bg-primary px-1.5 py-0.2 text-[10px] font-bold text-primary-foreground">
+                  {messages.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ── 1. GERAL TAB ── */}
         <TabsContent value="geral" className="mt-6 space-y-6">

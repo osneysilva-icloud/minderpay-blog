@@ -486,6 +486,14 @@ function LinkModal({
   );
 }
 
+const COLORS = [
+  "#000000", "#374151", "#6b7280", "#ef4444", "#f97316", "#eab308",
+  "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#ffffff"
+];
+const HIGHLIGHT_COLORS = [
+  "#fef08a", "#bbf7d0", "#bfdbfe", "#fecaca", "#f5d0fe", "#fed7aa"
+];
+
 // ──────────────────────────────────────────────
 // Main RichEditor Component
 // ──────────────────────────────────────────────
@@ -500,6 +508,7 @@ export function RichEditor({ content, onChange, placeholder = "Comece a escrever
   const [showImageModal, setShowImageModal] = useState(false);
   const [showYoutubeModal, setShowYoutubeModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const [activeColor, setActiveColor] = useState("#000000");
 
   const editor = useEditor({

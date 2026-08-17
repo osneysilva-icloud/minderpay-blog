@@ -303,15 +303,15 @@ function PostView() {
         </header>
 
         {/* Featured Image */}
-        <div className="mx-auto max-w-4xl mt-8 overflow-hidden rounded-2xl border border-border bg-muted aspect-video">
+        <div className="mx-auto max-w-4xl mt-8 overflow-hidden rounded-2xl border border-border bg-slate-950/5 dark:bg-muted/30 flex items-center justify-center min-h-[200px] max-h-[550px] shadow-xs">
           {post.featured_image ? (
             <img
               src={post.featured_image}
               alt={post.featured_image_alt || post.title}
-              className="h-full w-full object-cover"
+              className="w-full h-auto max-h-[550px] object-contain rounded-2xl"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/5 to-muted text-primary/30 font-bold uppercase tracking-widest text-3xl">
+            <div className="flex h-48 sm:h-64 w-full items-center justify-center bg-gradient-to-br from-primary/5 to-muted text-primary/30 font-bold uppercase tracking-widest text-3xl">
               MinderPay
             </div>
           )}

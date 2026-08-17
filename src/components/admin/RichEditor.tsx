@@ -486,6 +486,99 @@ function LinkModal({
   );
 }
 
+// ──────────────────────────────────────────────
+// HTML Code Modal (Editar / Colar código HTML)
+// ──────────────────────────────────────────────
+function HtmlCodeModal({
+  initialHtml,
+  onClose,
+  onApply,
+}: {
+  initialHtml: string;
+  onClose: () => void;
+  onApply: (html: string) => void;
+}) {
+  const [code, setCode] = useState(initialHtml);
+
+  const handleCleanAndApply = () => {
+    let cleaned = code;
+
+    // Extract body content if user pasted a full HTML document (<!DOCTYPE html><html><head>...</head><body>...</body></html>)
+    if (cleaned.includes("<body") && cleaned.includes("</body>")) {
+      const match = cleaned.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+      if (match && match[1]) {
+        cleaned = match[1];
+      }
+    }
+
+    // Remove full page document tags
+    cleaned = cleaned
+      .replace(/<!DOCTYPE[^>]*>/gi, "")
+      .replace(/<html[^>]*>/gi, "")
+      .replace(/<\/html>/gi, "")
+      .replace(/<head[\s\S]*?<\/head>/gi, "")
+      .replace(/<title[\s\S]*?<\/title>/gi, "")
+      .replace(/<meta[^>]*>/gi, "");
+
+    onApply(cleaned.trim());
+    toast.success("Código HTML aplicado ao artigo!");
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in">
+      <div className="w-full max-w-4xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-muted/40">
+          <div className="flex items-center gap-2">
+            <Code2 className="size-5 text-primary" />
+            <h3 className="font-bold text-foreground font-[family-name:var(--font-display)]">
+              Colar / Editar Código HTML do Artigo
+            </h3>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 hover:bg-muted text-muted-foreground">
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="p-6 flex-1 flex flex-col space-y-3 overflow-hidden">
+          <p className="text-xs text-muted-foreground">
+            Cole aqui o código HTML gerado (artigos com tags h1, h2, p, ul, ol, img, estilos, etc.). O sistema converte e renderiza automaticamente no artigo.
+          </p>
+          <textarea
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="<p>Cole ou escreva o código HTML aqui...</p>"
+            className="flex-1 w-full rounded-xl border border-border bg-slate-950 font-mono text-xs text-emerald-400 p-4 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary min-h-[360px] resize-none"
+          />
+        </div>
+
+        <div className="flex items-center justify-between border-t border-border px-6 py-4 bg-muted/40">
+          <span className="text-xs text-muted-foreground">
+            {code.length} caracteres em código HTML
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={!code.trim()}
+              onClick={handleCleanAndApply}
+              className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              Aplicar Código HTML
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const COLORS = [
   "#000000", "#374151", "#6b7280", "#ef4444", "#f97316", "#eab308",
   "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#ffffff"
@@ -508,6 +601,7 @@ export function RichEditor({ content, onChange, placeholder = "Comece a escrever
   const [showImageModal, setShowImageModal] = useState(false);
   const [showYoutubeModal, setShowYoutubeModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showHtmlModal, setShowHtmlModal] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [activeColor, setActiveColor] = useState("#000000");
 
@@ -558,6 +652,12 @@ export function RichEditor({ content, onChange, placeholder = "Comece a escrever
       editor.chain().focus().setLink({ href: url, target: "_blank" }).run();
     }
   }, [editor]);
+
+  const handleApplyHtml = useCallback((htmlContent: string) => {
+    if (!editor) return;
+    editor.commands.setContent(htmlContent);
+    onChange(htmlContent);
+  }, [editor, onChange]);
 
   const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
     const items = Array.from(e.clipboardData.items);
@@ -624,6 +724,17 @@ export function RichEditor({ content, onChange, placeholder = "Comece a escrever
               </div>
             )}
           </div>
+
+          {/* Paste / Edit HTML Code Button */}
+          <button
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); setShowHtmlModal(true); }}
+            className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors ml-1"
+            title="Colar ou editar código HTML diretamente"
+          >
+            <Code2 className="size-3.5" />
+            Colar Código HTML
+          </button>
 
           <Divider />
 
@@ -800,6 +911,13 @@ export function RichEditor({ content, onChange, placeholder = "Comece a escrever
           onClose={() => setShowLinkModal(false)}
           onInsert={insertLink}
           initial={editor.isActive("link") ? editor.getAttributes("link").href : undefined}
+        />
+      )}
+      {showHtmlModal && (
+        <HtmlCodeModal
+          initialHtml={editor.getHTML()}
+          onClose={() => setShowHtmlModal(false)}
+          onApply={handleApplyHtml}
         />
       )}
     </div>

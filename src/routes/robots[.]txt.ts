@@ -11,6 +11,12 @@ Disallow: /admin
 Disallow: /admin/*
 Disallow: /pesquisa
 Disallow: /pesquisa*
+Disallow: /checkout
+Disallow: /checkout/*
+Disallow: /carrinho
+Disallow: /carrinho/*
+Disallow: /produto
+Disallow: /produto/*
 Disallow: /api/
 Disallow: /api/*
 

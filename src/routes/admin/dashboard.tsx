@@ -161,6 +161,7 @@ export const Route = createFileRoute("/admin/dashboard")({
       recentPosts: recentPostsRes.data || [],
       recentEdited: recentEditedRes.data || [],
       topPosts: topPostsRes.data || [],
+      rawAnalytics: analyticsData,
       viewsChart,
       topCountries,
       topProvinces,
@@ -224,25 +225,173 @@ function deviceLabel(type: string | null) {
   return "💻 Computador";
 }
 
+// ─── Period Filter calculation ─────────────────────────────────────────────
+function computeAnalyticsForPeriod(analyticsData: any[], period: "today" | "7d" | "30d") {
+  const now = Date.now();
+  let startTime = 0;
+
+  if (period === "today") {
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
+    startTime = todayMidnight.getTime();
+  } else if (period === "7d") {
+    startTime = now - 7 * 24 * 60 * 60 * 1000;
+  } else {
+    startTime = now - 30 * 24 * 60 * 60 * 1000;
+  }
+
+  const filtered = (analyticsData || []).filter((ev) => {
+    const t = new Date(ev.created_at).getTime();
+    return t >= startTime;
+  });
+
+  const viewsCount = filtered.length;
+  const uniqueVisitorsCount = new Set(filtered.map((e) => e.session_id).filter(Boolean)).size;
+
+  let chartData: { date: string; views: number; visitors: number }[] = [];
+
+  if (period === "today") {
+    const hourSlots: Record<string, { views: number; visitors: Set<string> }> = {};
+    for (let h = 0; h < 24; h += 2) {
+      const label = `${String(h).padStart(2, "0")}:00`;
+      hourSlots[label] = { views: 0, visitors: new Set() };
+    }
+    filtered.forEach((ev) => {
+      const d = new Date(ev.created_at);
+      const h = d.getHours();
+      const bucketHour = Math.floor(h / 2) * 2;
+      const label = `${String(bucketHour).padStart(2, "0")}:00`;
+      if (hourSlots[label]) {
+        hourSlots[label].views++;
+        if (ev.session_id) hourSlots[label].visitors.add(ev.session_id);
+      }
+    });
+    chartData = Object.entries(hourSlots).map(([date, v]) => ({
+      date,
+      views: v.views,
+      visitors: v.visitors.size,
+    }));
+  } else if (period === "7d") {
+    const last7Days: Record<string, { views: number; visitors: Set<string> }> = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toLocaleDateString("pt-PT", { weekday: "short", day: "numeric" });
+      last7Days[key] = { views: 0, visitors: new Set() };
+    }
+    filtered.forEach((ev) => {
+      const d = new Date(ev.created_at);
+      const key = d.toLocaleDateString("pt-PT", { weekday: "short", day: "numeric" });
+      if (last7Days[key]) {
+        last7Days[key].views++;
+        if (ev.session_id) last7Days[key].visitors.add(ev.session_id);
+      }
+    });
+    chartData = Object.entries(last7Days).map(([date, v]) => ({
+      date,
+      views: v.views,
+      visitors: v.visitors.size,
+    }));
+  } else {
+    const last30Days: Record<string, { views: number; visitors: Set<string> }> = {};
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toLocaleDateString("pt-PT", { day: "2-digit", month: "2-digit" });
+      last30Days[key] = { views: 0, visitors: new Set() };
+    }
+    filtered.forEach((ev) => {
+      const d = new Date(ev.created_at);
+      const key = d.toLocaleDateString("pt-PT", { day: "2-digit", month: "2-digit" });
+      if (last30Days[key]) {
+        last30Days[key].views++;
+        if (ev.session_id) last30Days[key].visitors.add(ev.session_id);
+      }
+    });
+    chartData = Object.entries(last30Days).map(([date, v]) => ({
+      date,
+      views: v.views,
+      visitors: v.visitors.size,
+    }));
+  }
+
+  const countryMap: Record<string, { name: string; code: string; count: number }> = {};
+  filtered.forEach((ev) => {
+    if (ev.country) {
+      if (!countryMap[ev.country]) countryMap[ev.country] = { name: ev.country, code: ev.country_code || "?", count: 0 };
+      countryMap[ev.country].count++;
+    }
+  });
+  const topCountries = Object.values(countryMap).sort((a, b) => b.count - a.count).slice(0, 8);
+
+  const provinceMap: Record<string, { name: string; country: string; code: string; count: number }> = {};
+  filtered.forEach((ev) => {
+    const regionName = ev.region || ev.city;
+    if (regionName) {
+      const key = `${regionName}__${ev.country || ""}`;
+      if (!provinceMap[key]) {
+        provinceMap[key] = { name: regionName, country: ev.country || "", code: ev.country_code || "?", count: 0 };
+      }
+      provinceMap[key].count++;
+    }
+  });
+  const topProvinces = Object.values(provinceMap).sort((a, b) => b.count - a.count).slice(0, 8);
+
+  const cityMap: Record<string, { name: string; region: string; country: string; code: string; count: number }> = {};
+  filtered.forEach((ev) => {
+    if (ev.city) {
+      const key = `${ev.city}__${ev.region || ""}__${ev.country || ""}`;
+      if (!cityMap[key]) {
+        cityMap[key] = { name: ev.city, region: ev.region || "", country: ev.country || "", code: ev.country_code || "?", count: 0 };
+      }
+      cityMap[key].count++;
+    }
+  });
+  const topCities = Object.values(cityMap).sort((a, b) => b.count - a.count).slice(0, 8);
+
+  return {
+    viewsCount,
+    uniqueVisitorsCount,
+    chartData,
+    topCountries,
+    topProvinces,
+    topCities,
+  };
+}
+
 // ─── Dashboard Component ───────────────────────────────────────────────────
 function DashboardView() {
-  const { stats, recentPosts, recentEdited, topPosts, viewsChart, topCountries, topProvinces, topCities, recentViews, hasAnalytics } = Route.useLoaderData();
+  const { stats, recentPosts, recentEdited, topPosts, rawAnalytics, viewsChart: initialViewsChart, topCountries: initialCountries, topProvinces: initialProvinces, topCities: initialCities, recentViews, hasAnalytics } = Route.useLoaderData();
   const { liveCount, liveEvents } = useLiveVisitors();
   const [geoTab, setGeoTab] = useState<"provinces" | "cities" | "countries">("provinces");
+  const [periodFilter, setPeriodFilter] = useState<"today" | "7d" | "30d">("7d");
+
+  const periodStats = useCallback(() => {
+    return computeAnalyticsForPeriod(rawAnalytics || [], periodFilter);
+  }, [rawAnalytics, periodFilter])();
+
+  const periodLabel = periodFilter === "today" ? "Hoje" : periodFilter === "7d" ? "7 Dias" : "30 Dias";
+  const viewsValue = periodFilter === "7d" ? stats.totalViews : (periodStats.viewsCount || 0);
 
   const statCards = [
     { title: "Total de Artigos", value: stats.totalPosts, icon: FileText, color: "text-blue-600 bg-blue-50 dark:bg-blue-950" },
     { title: "Publicados", value: stats.publishedCount, icon: CheckCircle, color: "text-green-600 bg-green-50 dark:bg-green-950" },
     { title: "Rascunhos", value: stats.draftCount, icon: Edit3, color: "text-amber-600 bg-amber-50 dark:bg-amber-950" },
     { title: "Agendados", value: stats.scheduledCount, icon: Calendar, color: "text-purple-600 bg-purple-50 dark:bg-purple-950" },
-    { title: "Visualizações (Posts)", value: stats.totalViews.toLocaleString("pt-PT"), icon: Eye, color: "text-indigo-600 bg-indigo-50 dark:bg-indigo-950" },
-    { title: "Visitantes Únicos (7d)", value: stats.uniqueVisitors.toLocaleString("pt-PT"), icon: Users, color: "text-cyan-600 bg-cyan-50 dark:bg-cyan-950" },
+    { title: `Visualizações (${periodLabel})`, value: viewsValue.toLocaleString("pt-PT"), icon: Eye, color: "text-indigo-600 bg-indigo-50 dark:bg-indigo-950" },
+    { title: `Visitantes Únicos (${periodLabel})`, value: (periodStats.uniqueVisitorsCount || 0).toLocaleString("pt-PT"), icon: Users, color: "text-cyan-600 bg-cyan-50 dark:bg-cyan-950" },
     { title: "Categorias", value: stats.categoriesCount, icon: FolderOpen, color: "text-teal-600 bg-teal-50 dark:bg-teal-950" },
     { title: "Tags", value: stats.tagsCount, icon: TagIcon, color: "text-pink-600 bg-pink-50 dark:bg-pink-950" },
   ];
 
-  const currentGeoList = geoTab === "provinces" ? topProvinces : geoTab === "cities" ? topCities : topCountries;
+  const currentGeoList = geoTab === "provinces"
+    ? (periodStats.topProvinces.length > 0 ? periodStats.topProvinces : initialProvinces)
+    : geoTab === "cities"
+    ? (periodStats.topCities.length > 0 ? periodStats.topCities : initialCities)
+    : (periodStats.topCountries.length > 0 ? periodStats.topCountries : initialCountries);
   const maxGeoCount = currentGeoList[0]?.count || 1;
+
+  const currentChartData = periodStats.chartData.length > 0 ? periodStats.chartData : initialViewsChart;
 
   return (
     <div className="space-y-8">
@@ -266,6 +415,51 @@ function DashboardView() {
           <span className="text-xs text-green-600 dark:text-green-500">visitante{liveCount !== 1 ? "s" : ""} agora</span>
         </div>
       </div>
+
+      {/* Period Filter Bar */}
+      <section className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card border border-border rounded-xl p-4 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Calendar className="size-4 text-primary shrink-0" />
+          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Filtro Temporal de Acessos:
+          </span>
+        </div>
+        <div className="flex items-center gap-1 rounded-lg bg-muted p-1 text-xs w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setPeriodFilter("today")}
+            className={`flex-1 sm:flex-initial rounded-md px-3.5 py-1.5 font-semibold text-center transition-all ${
+              periodFilter === "today"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Diário (Hoje)
+          </button>
+          <button
+            type="button"
+            onClick={() => setPeriodFilter("7d")}
+            className={`flex-1 sm:flex-initial rounded-md px-3.5 py-1.5 font-semibold text-center transition-all ${
+              periodFilter === "7d"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Semanal (7 Dias)
+          </button>
+          <button
+            type="button"
+            onClick={() => setPeriodFilter("30d")}
+            className={`flex-1 sm:flex-initial rounded-md px-3.5 py-1.5 font-semibold text-center transition-all ${
+              periodFilter === "30d"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Mensal (30 Dias)
+          </button>
+        </div>
+      </section>
 
       {/* Action Shortcuts */}
       <section className="bg-card border border-border rounded-xl p-5">
@@ -311,17 +505,17 @@ function DashboardView() {
         })}
       </section>
 
-      {/* Views Chart (7 days) */}
+      {/* Views Chart */}
       <Card className="border border-border shadow-sm">
         <CardHeader>
           <CardTitle className="font-[family-name:var(--font-display)] text-lg font-700 flex items-center gap-2">
-            <TrendingUp className="size-5 text-primary" /> Visualizações dos Últimos 7 Dias
+            <TrendingUp className="size-5 text-primary" /> Visualizações {periodFilter === "today" ? "de Hoje (por hora)" : periodFilter === "7d" ? "dos Últimos 7 Dias" : "dos Últimos 30 Dias"}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {hasAnalytics && viewsChart.some(d => d.views > 0) ? (
+          {hasAnalytics && currentChartData.some(d => d.views > 0) ? (
             <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={viewsChart} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={currentChartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="viewsGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
@@ -343,7 +537,7 @@ function DashboardView() {
           ) : (
             <div className="flex items-center justify-center h-[200px] text-sm text-muted-foreground flex-col gap-2">
               <Activity className="size-8 opacity-30" />
-              <span>Os dados de analítica serão apresentados aqui quando o blog tiver visitas.</span>
+              <span>Os dados de analítica serão apresentados aqui quando o blog tiver visitas no período selecionado.</span>
             </div>
           )}
         </CardContent>

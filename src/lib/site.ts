@@ -4,7 +4,7 @@
  * (valor de produção: https://minderpay.com).
  */
 export const SITE_URL = (
-  import.meta.env["VITE_SITE_URL"] || "https://minderpay.com"
+  import.meta.env["VITE_SITE_URL"] || "https://www.minderpay.com"
 ).replace(/\/$/, "");
 
 export const SITE_NAME = "MinderPay";

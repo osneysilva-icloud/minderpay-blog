@@ -151,7 +151,7 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
     if (force || !seoTitle) setSeoTitle(title);
     if (force || !seoDescription) setSeoDescription(autoDesc);
     if (force || !primaryKeyword) setPrimaryKeyword(topKeywords || "marketing digital, vendas online");
-    if (force || !canonicalUrl) setCanonicalUrl(autoSlug ? `https://minderpay.com/blog/${autoSlug}` : "https://minderpay.com");
+    if (force || !canonicalUrl) setCanonicalUrl(autoSlug ? `https://www.minderpay.com/blog/${autoSlug}` : "https://www.minderpay.com");
     if (force || !ogTitle) setOgTitle(title);
     if (force || !ogDescription) setOgDescription(autoDesc);
     if (force || !ogImage) setOgImage(featuredImage);
@@ -166,7 +166,7 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
       const generatedSlug = slugify(val);
       setSlug(generatedSlug);
       if (!canonicalUrl || canonicalUrl.includes("minderpay.com/blog/")) {
-        setCanonicalUrl(`https://minderpay.com/blog/${generatedSlug}`);
+        setCanonicalUrl(`https://www.minderpay.com/blog/${generatedSlug}`);
       }
     }
   };
@@ -177,7 +177,7 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
     const generated = slugify(title);
     setSlug(generated);
     setSlugManuallyEdited(false);
-    setCanonicalUrl(`https://minderpay.com/blog/${generated}`);
+    setCanonicalUrl(`https://www.minderpay.com/blog/${generated}`);
   };
 
   // Upload featured image
@@ -240,7 +240,7 @@ export function PostEditorForm({ postId, initialData, onSave, loading }: PostEdi
       reading_time: Math.max(1, Math.ceil(content.replace(/<[^>]*>/g, "").split(/\s+/).length / 200)),
       seo_title: seoTitle || title,
       seo_description: seoDescription || autoDesc || null,
-      canonical_url: canonicalUrl || `https://minderpay.com/blog/${finalSlug}`,
+      canonical_url: canonicalUrl || `https://www.minderpay.com/blog/${finalSlug}`,
       robots_index: robotsIndex,
       robots_follow: robotsFollow,
       og_title: ogTitle || seoTitle || title,

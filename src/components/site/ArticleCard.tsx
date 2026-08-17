@@ -10,7 +10,7 @@ interface ArticleCardProps {
 export function ArticleCard({ post }: ArticleCardProps) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-md">
-      <Link to="/blog/$slug" params={{ slug: post.slug }} className="block overflow-hidden aspect-video relative bg-slate-950/5 dark:bg-muted/30">
+      <Link to="/blog/$slug" params={{ slug: post.slug }} className="block overflow-hidden aspect-video relative bg-slate-950/5 dark:bg-muted/30 flex items-center justify-center">
         {post.featured_image ? (
           <img
             src={post.featured_image}
@@ -18,7 +18,7 @@ export function ArticleCard({ post }: ArticleCardProps) {
             width={400}
             height={225}
             loading="lazy"
-            className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+            className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-muted text-primary/40 font-bold uppercase tracking-widest text-lg">
@@ -26,7 +26,7 @@ export function ArticleCard({ post }: ArticleCardProps) {
           </div>
         )}
         {post.category && (
-          <span className="absolute left-3 top-3 rounded bg-background/95 px-2.5 py-1 text-xs font-semibold text-foreground backdrop-blur-sm">
+          <span className="absolute left-3 top-3 z-10 rounded bg-background/95 px-2.5 py-1 text-xs font-semibold text-foreground backdrop-blur-sm">
             {post.category.name}
           </span>
         )}
@@ -73,14 +73,14 @@ export function ArticleCard({ post }: ArticleCardProps) {
 export function FeaturedArticle({ post }: ArticleCardProps) {
   return (
     <article className="group grid gap-6 md:grid-cols-2 lg:gap-10">
-      <Link to="/blog/$slug" params={{ slug: post.slug }} className="block overflow-hidden rounded-2xl border border-border aspect-video md:aspect-auto md:h-full min-h-[250px] relative bg-slate-950/5 dark:bg-muted/30">
+      <Link to="/blog/$slug" params={{ slug: post.slug }} className="block overflow-hidden rounded-2xl border border-border aspect-video md:aspect-auto md:h-full min-h-[240px] max-h-[420px] relative bg-slate-950/5 dark:bg-muted/30 flex items-center justify-center">
         {post.featured_image ? (
           <img
             src={post.featured_image}
             alt={post.featured_image_alt || post.title}
             width={800}
             height={450}
-            className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-102"
+            className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-102"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-muted text-primary/40 font-bold uppercase tracking-widest text-2xl">
@@ -88,7 +88,7 @@ export function FeaturedArticle({ post }: ArticleCardProps) {
           </div>
         )}
         {post.category && (
-          <span className="absolute left-4 top-4 rounded bg-background/95 px-3 py-1.5 text-xs font-semibold text-foreground backdrop-blur-sm shadow-sm">
+          <span className="absolute left-4 top-4 z-10 rounded bg-background/95 px-3 py-1.5 text-xs font-semibold text-foreground backdrop-blur-sm shadow-sm">
             {post.category.name}
           </span>
         )}

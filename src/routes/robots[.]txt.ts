@@ -17,6 +17,10 @@ Disallow: /carrinho
 Disallow: /carrinho/*
 Disallow: /produto
 Disallow: /produto/*
+Disallow: /registro
+Disallow: /registro*
+Disallow: /login
+Disallow: /login*
 Disallow: /api/
 Disallow: /api/*
 

@@ -293,7 +293,10 @@ export async function fetchSitemapEntries() {
   };
 }
 
-export async function incrementView(slug: string, reqMeta?: { country?: string; city?: string; region?: string }) {
+export async function incrementView(
+  slug: string,
+  reqMeta?: { country?: string; countryCode?: string; city?: string; region?: string; deviceType?: string }
+) {
   const supabase = db();
   const { data } = await publishedFilter(supabase.from("posts").select("id,title,view_count"))
     .eq("slug", slug)
@@ -302,7 +305,7 @@ export async function incrementView(slug: string, reqMeta?: { country?: string; 
 
   const newCount = (data.view_count ?? 0) + 1;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  
+
   // 1. Update post view count
   await supabaseAdmin
     .from("posts")
@@ -311,20 +314,21 @@ export async function incrementView(slug: string, reqMeta?: { country?: string; 
 
   // 2. Insert event into analytics_events table bypassing RLS
   try {
-    const defaultCountry = reqMeta?.country || "Moçambique";
-    const defaultCountryCode = reqMeta?.country ? "MZ" : "MZ";
-    const defaultCity = reqMeta?.city || "Maputo";
-    const defaultRegion = reqMeta?.region || "Maputo";
+    const country = reqMeta?.country || "Moçambique";
+    const countryCode = reqMeta?.countryCode || "MZ";
+    const city = reqMeta?.city || "Desconhecido";
+    const region = reqMeta?.region || reqMeta?.city || "Desconhecido";
+    const deviceType = reqMeta?.deviceType || "mobile";
 
     await supabaseAdmin.from("analytics_events").insert({
       event_type: "page_view",
       page_path: `/blog/${slug}`,
       session_id: `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
-      device_type: "mobile",
-      country: defaultCountry,
-      country_code: defaultCountryCode,
-      city: defaultCity,
-      region: defaultRegion,
+      device_type: deviceType,
+      country,
+      country_code: countryCode,
+      city,
+      region,
       created_at: new Date().toISOString(),
     });
   } catch {

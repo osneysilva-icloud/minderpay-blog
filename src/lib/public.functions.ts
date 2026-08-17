@@ -66,12 +66,81 @@ export const getAuthorBySlug = createServerFn({ method: "GET" })
 export const registerView = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => {
     if (typeof input === "string") return { slug: input };
-    if (input && typeof (input as any).slug === "string") return { slug: (input as any).slug };
-    return z.object({ slug: z.string().min(1) }).parse(input);
+    if (input && typeof (input as any).slug === "string") {
+      return {
+        slug: (input as any).slug,
+        city: (input as any).city,
+        region: (input as any).region,
+        country: (input as any).country,
+        countryCode: (input as any).countryCode,
+        deviceType: (input as any).deviceType,
+      };
+    }
+    return z
+      .object({
+        slug: z.string().min(1),
+        city: z.string().optional(),
+        region: z.string().optional(),
+        country: z.string().optional(),
+        countryCode: z.string().optional(),
+        deviceType: z.string().optional(),
+      })
+      .parse(input);
   })
   .handler(async ({ data }) => {
+    let reqMeta: { country?: string; countryCode?: string; city?: string; region?: string; deviceType?: string } = {
+      city: data.city,
+      region: data.region,
+      country: data.country,
+      countryCode: data.countryCode,
+      deviceType: data.deviceType,
+    };
+
+    try {
+      const { getWebRequest } = await import("@tanstack/react-start/server");
+      const req = getWebRequest();
+      if (req) {
+        const headers = req.headers;
+        const rawCountry = headers.get("x-vercel-ip-country") || headers.get("cf-ipcountry");
+        const rawRegion = headers.get("x-vercel-ip-country-region") || headers.get("cf-region");
+        const rawCity = headers.get("x-vercel-ip-city") || headers.get("cf-ipcity");
+        const clientIp = headers.get("x-forwarded-for")?.split(",")[0]?.trim() || headers.get("x-real-ip");
+
+        if (rawCountry && !reqMeta.country) {
+          reqMeta.country = rawCountry === "MZ" ? "Moçambique" : rawCountry;
+          reqMeta.countryCode = rawCountry;
+        }
+
+        if (rawCity && !reqMeta.city) {
+          try { reqMeta.city = decodeURIComponent(rawCity); } catch { reqMeta.city = rawCity; }
+        }
+
+        if (rawRegion && !reqMeta.region) {
+          try { reqMeta.region = decodeURIComponent(rawRegion); } catch { reqMeta.region = rawRegion; }
+        }
+
+        // If IP is valid and city/region still missing, query ipapi.co as server fallback
+        if ((!reqMeta.city || !reqMeta.region) && clientIp && clientIp !== "127.0.0.1" && clientIp !== "::1") {
+          try {
+            const geoRes = await fetch(`https://ipapi.co/${clientIp}/json/`, { signal: AbortSignal.timeout(2000) });
+            if (geoRes.ok) {
+              const geoData = await geoRes.json();
+              if (geoData.country_name) reqMeta.country = geoData.country_name;
+              if (geoData.country_code) reqMeta.countryCode = geoData.country_code;
+              if (geoData.city) reqMeta.city = geoData.city;
+              if (geoData.region) reqMeta.region = geoData.region;
+            }
+          } catch {
+            /* ignore timeout */
+          }
+        }
+      }
+    } catch {
+      /* ignore server request parsing errors */
+    }
+
     const { incrementView } = await import("./public-data.server");
-    await incrementView(data.slug);
+    await incrementView(data.slug, reqMeta);
     return { ok: true };
   });
 

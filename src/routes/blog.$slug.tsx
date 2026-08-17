@@ -131,7 +131,13 @@ function PostView() {
   // Register page view on mount
   useEffect(() => {
     if (post?.slug) {
-      registerView({ data: { slug: post.slug } }).catch((err) =>
+      const isMobile = typeof window !== "undefined" && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      registerView({
+        data: {
+          slug: post.slug,
+          deviceType: isMobile ? "mobile" : "desktop",
+        },
+      }).catch((err) =>
         console.error("Failed to register page view:", err)
       );
     }

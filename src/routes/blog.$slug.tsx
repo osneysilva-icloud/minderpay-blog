@@ -3,7 +3,7 @@ import { getPost, registerView } from "@/lib/public.functions";
 import { SiteLayout } from "@/components/site/layout";
 import { AdSlot } from "@/components/site/AdSlot";
 import { absoluteUrl, formatDate, postPath } from "@/lib/site";
-import { Calendar, Clock, Facebook, Linkedin, MessageSquare, Twitter, Share2, ArrowLeft } from "lucide-react";
+import { Calendar, Clock, Facebook, Linkedin, MessageSquare, Twitter, Share2, ArrowLeft, ListOrdered } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
@@ -125,6 +125,23 @@ export const Route = createFileRoute("/blog/$slug")({
   component: PostView,
 });
 
+function processArticleContent(rawHtml: string) {
+  if (!rawHtml) return { html: "", toc: [] as { id: string; text: string }[] };
+
+  const toc: { id: string; text: string }[] = [];
+  let count = 0;
+
+  const html = rawHtml.replace(/<h2([^>]*)>([\s\S]*?)<\/h2>/gi, (match, attrs, innerText) => {
+    count++;
+    const cleanText = innerText.replace(/<[^>]*>/g, "").trim();
+    const id = `topico-${count}`;
+    toc.push({ id, text: cleanText });
+    return `<h2 id="${id}" ${attrs}>${innerText}</h2>`;
+  });
+
+  return { html, toc };
+}
+
 function PostView() {
   const { post, tags, related } = Route.useLoaderData();
 
@@ -145,6 +162,7 @@ function PostView() {
 
   if (!post) return null;
 
+  const { html: processedContent, toc } = processArticleContent(post.content || "");
   const pageUrl = typeof window !== "undefined" ? window.location.href : absoluteUrl(postPath(post.slug));
 
   const handleShare = (platform: "fb" | "tw" | "in" | "wa" | "copy") => {
@@ -347,10 +365,28 @@ function PostView() {
 
           {/* Article Text Content */}
           <div className="md:col-span-3 space-y-8">
+            {/* Table of Contents / Índice do Artigo (quando há 2 ou mais tópicos H2) */}
+            {toc.length >= 2 && (
+              <nav aria-label="Índice do Artigo" className="rounded-2xl border border-primary/20 bg-primary/5 p-5 space-y-3 shadow-xs">
+                <div className="flex items-center gap-2 font-bold text-foreground text-sm font-[family-name:var(--font-display)]">
+                  <ListOrdered className="size-4 text-primary" /> Índice de Conteúdo
+                </div>
+                <ol className="space-y-1.5 text-xs text-muted-foreground list-decimal list-inside pl-1">
+                  {toc.map((item) => (
+                    <li key={item.id} className="hover:text-primary transition-colors">
+                      <a href={`#${item.id}`} className="hover:underline font-medium text-foreground/80 hover:text-primary">
+                        {item.text}
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              </nav>
+            )}
+
             {/* Rich Text Editor Content */}
             <div
               className="prose prose-article max-w-none text-foreground leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+              dangerouslySetInnerHTML={{ __html: processedContent }}
             />
 
             {/* Tags list */}

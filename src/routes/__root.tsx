@@ -96,6 +96,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     const description = settings?.default_seo_description || SITE_DESCRIPTION;
     const gsc = settings?.gsc_verification;
     const ga = settings?.ga_measurement_id;
+    const rawAdsensePub = settings?.adsense_publisher_id?.trim() || "pub-4050091800984606";
+    const pubIdMatch = rawAdsensePub.match(/(?:ca-)?pub-(\d+)/i) || rawAdsensePub.match(/(\d{10,})/);
+    const adsensePubId = pubIdMatch ? `ca-pub-${pubIdMatch[1]}` : null;
 
     return {
       meta: [
@@ -120,6 +123,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
               },
             ]
           : []),
+        ...(adsensePubId
+          ? [
+              {
+                name: "google-adsense-account",
+                content: adsensePubId,
+              },
+            ]
+          : []),
       ],
       links: [
         { rel: "manifest", href: "/manifest.json" },
@@ -135,6 +146,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { rel: "apple-touch-icon", href: "/favicon.svg" },
       ],
       scripts: [
+        ...(adsensePubId
+          ? [
+              {
+                src: `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsensePubId}`,
+                async: true,
+                crossOrigin: "anonymous",
+              },
+            ]
+          : []),
         ...(ga
           ? [
               { src: `https://www.googletagmanager.com/gtag/js?id=${ga}`, async: true },

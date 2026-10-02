@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useSite } from "./site-context";
 
 interface AdSlotProps {
@@ -8,13 +9,24 @@ interface AdSlotProps {
 export function AdSlot({ slotKey, className = "" }: AdSlotProps) {
   const { settings, adSlots } = useSite();
 
-  if (!settings?.ads_enabled) return null;
-
   const slot = adSlots.find((s) => s.key === slotKey);
-  if (!slot || !slot.enabled) return null;
+  const rawAdClient = slot?.ad_client || settings?.adsense_publisher_id || "pub-4050091800984606";
+  const pubMatch = rawAdClient.match(/(?:ca-)?pub-(\d+)/i) || rawAdClient.match(/(\d{10,})/);
+  const adClient = pubMatch ? `ca-pub-${pubMatch[1]}` : rawAdClient;
+  const adSlotId = slot?.ad_unit_id || "";
 
-  const adClient = slot.ad_client || settings.adsense_publisher_id || "";
-  const adSlotId = slot.ad_unit_id || "";
+  useEffect(() => {
+    if (settings?.ads_enabled && slot?.enabled && adClient && adSlotId) {
+      try {
+        ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+      } catch {
+        // ignore adsbygoogle error
+      }
+    }
+  }, [settings?.ads_enabled, slot?.enabled, adClient, adSlotId]);
+
+  if (!settings?.ads_enabled) return null;
+  if (!slot || !slot.enabled) return null;
 
   return (
     <div

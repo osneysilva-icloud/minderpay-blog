@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Settings, Share2, Compass, BadgePercent, User, Upload, Image as ImageIcon,
   CheckCircle2, AlertCircle, Loader2, Trash2, Mail, MessageSquare, ExternalLink,
-  Sparkles, ShieldCheck
+  Sparkles, ShieldCheck, Copy, Code2, FileText, Check
 } from "lucide-react";
 import { formatDateTime } from "@/lib/admin";
 
@@ -50,6 +50,41 @@ function SettingsManagementView() {
   const [gscVer, setGscVer] = useState(settings?.gsc_verification || "");
   const [adsensePubId, setAdsensePubId] = useState(settings?.adsense_publisher_id || "");
   const [adsEnabled, setAdsEnabled] = useState(settings?.ads_enabled ?? false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, key: string) => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      toast.success("Copiado para a área de transferência!");
+      setTimeout(() => setCopiedKey(null), 2000);
+    }
+  };
+
+  const handleAdsenseInputChange = (val: string) => {
+    // If user pastes full script tag: <script ... client="ca-pub-XXXXX" ...>
+    const scriptMatch = val.match(/client=["'](ca-)?pub-(\d+)["']/i);
+    if (scriptMatch) {
+      setAdsensePubId(`pub-${scriptMatch[2]}`);
+      toast.success("ID do AdSense extraído com sucesso do fragmento de código!");
+      return;
+    }
+    // If user pastes meta tag: <meta ... content="ca-pub-XXXXX" ...>
+    const metaMatch = val.match(/content=["'](ca-)?pub-(\d+)["']/i);
+    if (metaMatch) {
+      setAdsensePubId(`pub-${metaMatch[2]}`);
+      toast.success("ID do AdSense extraído da metatag!");
+      return;
+    }
+    // If user pastes ads.txt line: google.com, pub-XXXXX, ...
+    const adsTxtMatch = val.match(/pub-(\d+)/i);
+    if (adsTxtMatch && (val.includes("<") || val.includes("google.com"))) {
+      setAdsensePubId(`pub-${adsTxtMatch[1]}`);
+      toast.success("ID do AdSense extraído com sucesso!");
+      return;
+    }
+    setAdsensePubId(val);
+  };
   const [defSeoTitle, setDefSeoTitle] = useState(settings?.default_seo_title || "");
   const [defSeoDesc, setDefSeoDesc] = useState(settings?.default_seo_description || "");
   const [defOgImage, setDefOgImage] = useState(settings?.default_og_image || "");
@@ -649,10 +684,141 @@ function SettingsManagementView() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5 max-w-md">
-                  <label htmlFor="ad-client-pub" className="text-xs font-semibold text-foreground">Google AdSense Publisher ID</label>
-                  <Input id="ad-client-pub" placeholder="pub-XXXXXXXXXXXXXXXX" value={adsensePubId} onChange={(e) => setAdsensePubId(e.target.value)} />
-                  <p className="text-[10px] text-muted-foreground">O seu ID de editor do AdSense (ex: pub-1234567890123456).</p>
+                {/* ── Google AdSense Publisher & Validation Snippets ── */}
+                <div className="space-y-4 rounded-2xl border border-border/80 bg-card p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <BadgePercent className="size-4 text-primary" />
+                        Validação de Propriedade & Códigos AdSense
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Propriedades oficiais exigidas pelo Google AdSense para ativar a sua conta e verificar o site minderpay.com.
+                      </p>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      <Check className="size-3" />
+                      3 Métodos Prontos no Site
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 max-w-xl">
+                    <label htmlFor="ad-client-pub" className="text-xs font-semibold text-foreground flex items-center justify-between">
+                      <span>Google AdSense Publisher ID</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">Aceita ID ou colar o &lt;script&gt; completo</span>
+                    </label>
+                    <Input
+                      id="ad-client-pub"
+                      placeholder="pub-4050091800984606 (ou cole o código que o AdSense forneceu)"
+                      value={adsensePubId}
+                      onChange={(e) => handleAdsenseInputChange(e.target.value)}
+                      className="font-mono text-xs"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      ID de editor ativo: <code className="text-primary font-bold">pub-{cleanPubDigits}</code> (ou <code className="text-primary font-bold">ca-pub-{cleanPubDigits}</code>).
+                    </p>
+                  </div>
+
+                  {/* 3 Métodos de Validação AdSense */}
+                  <div className="grid gap-3 pt-2">
+                    {/* Método 1: Fragmento do Código */}
+                    <div className="p-3.5 rounded-xl border border-border bg-muted/20 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Code2 className="size-4 text-primary" />
+                          <span className="text-xs font-bold text-foreground">1. Fragmento do código do AdSense (&lt;head&gt;)</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(adSenseScriptSnippet, "script")}
+                          className="h-7 text-xs gap-1.5"
+                        >
+                          {copiedKey === "script" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+                          {copiedKey === "script" ? "Copiado!" : "Copiar Fragmento"}
+                        </Button>
+                      </div>
+                      <div className="relative">
+                        <pre className="p-2.5 rounded-lg bg-zinc-950 text-zinc-200 text-[11px] font-mono overflow-x-auto whitespace-pre-wrap break-all border border-border/50">
+                          {adSenseScriptSnippet}
+                        </pre>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        <Check className="size-3.5" />
+                        <span>Injetado automaticamente no &lt;head&gt; de todas as páginas do minderpay.com</span>
+                      </div>
+                    </div>
+
+                    {/* Método 2: Ficheiro ads.txt */}
+                    <div className="p-3.5 rounded-xl border border-border bg-muted/20 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <FileText className="size-4 text-amber-500" />
+                          <span className="text-xs font-bold text-foreground">2. Fragmento do ficheiro ads.txt (/ads.txt)</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href="/ads.txt"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline px-2 py-1 rounded"
+                          >
+                            <ExternalLink className="size-3" />
+                            Ver ficheiro ao vivo
+                          </a>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(adSenseAdsTxtSnippet, "adstxt")}
+                            className="h-7 text-xs gap-1.5"
+                          >
+                            {copiedKey === "adstxt" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+                            {copiedKey === "adstxt" ? "Copiado!" : "Copiar ads.txt"}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <pre className="p-2.5 rounded-lg bg-zinc-950 text-zinc-200 text-[11px] font-mono overflow-x-auto whitespace-pre-wrap break-all border border-border/50">
+                          {adSenseAdsTxtSnippet}
+                        </pre>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        <Check className="size-3.5" />
+                        <span>Ficheiro criado e ativo no servidor. O Google AdSense já consegue ler em <strong>minderpay.com/ads.txt</strong>.</span>
+                      </div>
+                    </div>
+
+                    {/* Método 3: Metatag */}
+                    <div className="p-3.5 rounded-xl border border-border bg-muted/20 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Compass className="size-4 text-blue-500" />
+                          <span className="text-xs font-bold text-foreground">3. Metatag do AdSense (&lt;head&gt;)</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(adSenseMetaSnippet, "meta")}
+                          className="h-7 text-xs gap-1.5"
+                        >
+                          {copiedKey === "meta" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+                          {copiedKey === "meta" ? "Copiado!" : "Copiar Metatag"}
+                        </Button>
+                      </div>
+                      <div className="relative">
+                        <pre className="p-2.5 rounded-lg bg-zinc-950 text-zinc-200 text-[11px] font-mono overflow-x-auto whitespace-pre-wrap break-all border border-border/50">
+                          {adSenseMetaSnippet}
+                        </pre>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        <Check className="size-3.5" />
+                        <span>Injetada nas meta tags do &lt;head&gt; para validação instantânea.</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Slots Grid */}

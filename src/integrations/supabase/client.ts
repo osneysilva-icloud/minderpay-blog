@@ -33,14 +33,20 @@ const SUPABASE_KEY_FALLBACK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJz
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR, then hardcoded fallback for Vercel runtime
-  const SUPABASE_URL =
+  let SUPABASE_URL =
     import.meta.env['VITE_SUPABASE_URL'] ||
     process.env['SUPABASE_URL'] ||
     SUPABASE_URL_FALLBACK;
-  const SUPABASE_PUBLISHABLE_KEY =
+  let SUPABASE_PUBLISHABLE_KEY =
     import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
     process.env['SUPABASE_PUBLISHABLE_KEY'] ||
     SUPABASE_KEY_FALLBACK;
+
+  // Protect against nonexistent legacy host
+  if (SUPABASE_URL && SUPABASE_URL.includes('bfwvwcmnnkcyrgrotywj')) {
+    SUPABASE_URL = SUPABASE_URL_FALLBACK;
+    SUPABASE_PUBLISHABLE_KEY = SUPABASE_KEY_FALLBACK;
+  }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {

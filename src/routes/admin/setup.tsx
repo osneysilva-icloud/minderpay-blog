@@ -6,9 +6,11 @@ const runSetup = createServerFn({ method: "POST" })
     try {
       const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
       
-      const email = "osneysilva@icloud.com";
-      const email2 = "suporteminderpay@gmail.com";
-      const password = "Minder_Ads1998";
+      const email = process.env.ADMIN_EMAIL || "osneysilva@icloud.com";
+      const email2 = process.env.ADMIN_SUPPORT_EMAIL || "suporteminderpay@gmail.com";
+      const password = process.env.ADMIN_PASSWORD || "Minder_Ads1998";
+      const adminName = process.env.ADMIN_NAME || "Osney Silva";
+      const supportName = process.env.ADMIN_SUPPORT_NAME || "Suporte MinderPay";
 
       // 1. Delete previous users from auth to avoid conflicts
       const { data: usersData, error: listError } = await db.auth.admin.listUsers();
@@ -25,7 +27,7 @@ const runSetup = createServerFn({ method: "POST" })
         email,
         password,
         email_confirm: true,
-        user_metadata: { full_name: "Osney Silva" },
+        user_metadata: { full_name: adminName },
       });
 
       if (res1.error) throw res1.error;
@@ -34,7 +36,7 @@ const runSetup = createServerFn({ method: "POST" })
         email: email2,
         password,
         email_confirm: true,
-        user_metadata: { full_name: "Suporte MinderPay" },
+        user_metadata: { full_name: supportName },
       });
 
       if (res2.error) throw res2.error;
@@ -53,17 +55,17 @@ const runSetup = createServerFn({ method: "POST" })
       // 5. Create authors
       const { error: authorError } = await db.from("authors").insert([
         {
-          name: "Osney Silva",
-          slug: "osney-silva",
-          bio: "Fundador e Diretor do MinderPay.",
+          name: adminName,
+          slug: adminName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+          bio: "Fundador e Administrador.",
           role_title: "Diretor Editorial",
           is_example: false,
           user_id: res1.data.user.id,
         },
         {
-          name: "Suporte MinderPay",
-          slug: "suporte-minderpay",
-          bio: "Equipe de Suporte do MinderPay.",
+          name: supportName,
+          slug: supportName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+          bio: "Equipe de Suporte.",
           role_title: "Administrador",
           is_example: false,
           user_id: res2.data.user.id,
